@@ -1,0 +1,34 @@
+{
+  "name": "mait",
+  "version": "1.0.0",
+  "description": "project -> Mapping the african internet topology ",
+  "main": "script.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EliasSih/MAIT-.git"
+  },
+  "keywords": [
+    "Traceroutes",
+    "Measurements",
+    "IP",
+    "Hop",
+    "Probe",
+    "AS",
+    "ASN",
+    "RTT",
+    "TTL",
+    "Router",
+    "VantagePoint",
+    "Matrix",
+    "GraphDataStructure"
+  ],
+  "author": "Elias Sihlangu",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/EliasSih/MAIT-/issues"
+  },
+  "homepage": "https://github.com/EliasSih/MAIT-#readme"
+}
