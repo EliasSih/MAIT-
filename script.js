@@ -2,6 +2,10 @@ console.log("script running!");
 
 const axios = require('axios');
 
+
+// Section : simple traceroute request to ripe atlas
+// from one probe to destination ip
+
 async function createMeasurement(probes, target) {
     console.log("measurement initiated!");
     // Replace this with your actual RIPE Atlas API key
@@ -45,8 +49,34 @@ async function createMeasurement(probes, target) {
     }
 }
 
-// Call the function with a list of probe IDs and a target IP
-createMeasurement([1002544], '169.239.165.17');
+async function getMeasurementResults(measurementIds) {
+    // Replace this with your actual RIPE Atlas API key
+    console.log("fetch initiated!");
+    const API_KEY = '216fafa6-2a2d-438a-9bb3-7309aa0acf59';
 
-// Section : simple traceroute request to ripe atlas
-// from one probe to destination ip
+    try {
+        for (let i = 0; i < measurementIds.length; i++) {
+            const config = {
+                method: 'get',
+                url: `https://atlas.ripe.net/api/v2/measurements/${measurementIds[i]}/results/`,
+                headers: {
+                    'Authorization': `Key ${API_KEY}`
+                }
+            };
+
+            const response = await axios(config);
+            console.log(`Results for measurement ID ${measurementIds[i]}:`);
+            console.log(JSON.stringify(response.data));
+        }
+    } catch (error) {
+        console.error(error);
+    }
+}
+
+
+// Call the function with a list of probe IDs and a target IP
+
+// createMeasurement([1002544], '169.239.165.17');
+
+// Test fetch measurement results function
+getMeasurementResults([55049887]);
