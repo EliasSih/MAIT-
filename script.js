@@ -5,7 +5,7 @@ const axios = require('axios');
 async function createMeasurement(probes, target) {
     console.log("measurement initiated!");
     // Replace this with your actual RIPE Atlas API key
-    const API_KEY = '0102f5a2-4ea9-45b7-8c5a-e398baaab965';
+    const API_KEY = '216fafa6-2a2d-438a-9bb3-7309aa0acf59';
 
     const data = {
         "definitions": [
@@ -15,6 +15,7 @@ async function createMeasurement(probes, target) {
                 "type": "traceroute",
                 "is_oneoff": true, // Set to true to run the measurement only once
                 "protocol": "ICMP",
+                "af": 4
             }
         ],
         "probes": [
