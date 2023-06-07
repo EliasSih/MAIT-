@@ -2,6 +2,7 @@ console.log("script running!");
 
 const axios = require('axios');
 
+const maxmind = require('maxmind');
 
 // Section : simple traceroute request to ripe atlas
 // from one probe to destination ip
@@ -105,7 +106,20 @@ async function fetchAfricanProbes(country_code) {
     }
 }
 
+// IP adress look-up
+async function geoLookup(ipAddress) {
+    const lookup = await maxmind.Reader.open('/path/to/GeoLite2-City.mmdb');
+    let result = lookup.get(ipAddress);
 
+    if (result && result.location) {
+        console.log(`Latitude: ${result.location.latitude}`);
+        console.log(`Longitude: ${result.location.longitude}`);
+    } else {
+        console.log(`No geolocation data found for IP: ${ipAddress}`);
+    }
+}
+
+geoLookup('128.101.101.101');
 
 // Call the function with a list of probe IDs and a target IP
 
@@ -115,4 +129,4 @@ async function fetchAfricanProbes(country_code) {
 // getMeasurementResults([55049887]);
 
 // Fetch Probes
-fetchAfricanProbes("ZA");
+// fetchAfricanProbes("ZA");
