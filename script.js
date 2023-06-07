@@ -73,10 +73,43 @@ async function getMeasurementResults(measurementIds) {
     }
 }
 
+// Get all Probes
+async function fetchAfricanProbes() {
+    // Define the API endpoint
+    const API_URL = 'https://atlas.ripe.net/api/v2/probes/?status_id=1&tags=system-ipv4-works&country_code=ZA';
+
+    try {
+        // Make the HTTP request to the API
+        const response = await axios.get(API_URL);
+
+        // If the request was successful, the API will return a JSON response
+        // Map the data into a more useful format, extracting the id, country, and IP address
+        // Include only probes with non-null IP address and that are currently connected
+        const probeList = response.data.results
+            .filter(probe => probe.address_v4 != null)
+            .map(probe => {
+                return {
+                    id: probe.id,
+                    country: probe.country_code,
+                    ipv4: probe.address_v4
+                };
+            });
+
+        console.log(probeList);
+        return probeList;
+
+    } catch (error) {
+        // If the request failed (e.g. network error, API returned an error status), log the error to the console and rethrow it
+        console.error('Failed to fetch probe list:', error);
+        throw error;
+    }
+}
+
+fetchAfricanProbes();
 
 // Call the function with a list of probe IDs and a target IP
 
 // createMeasurement([1002544], '169.239.165.17');
 
 // Test fetch measurement results function
-getMeasurementResults([55049887]);
+// getMeasurementResults([55049887]);
