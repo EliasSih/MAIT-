@@ -111,7 +111,7 @@ async function fetchAfricanProbes(country_code) {
 
 async function geoLookup(ipAddress) {
     // Load the GeoLite2 data into memory
-    const buffer = fs.readFileSync('/path/to/GeoLite2-City.mmdb');
+    const buffer = fs.readFileSync('GeoDatabase/GeoLite2-City.mmdb');
 
     // Initialize the reader with the GeoLite2 data
     const reader = await Reader.openBuffer(buffer);
@@ -119,7 +119,9 @@ async function geoLookup(ipAddress) {
     // Perform the lookup
     let response = reader.city(ipAddress);
 
-    if (response && response.location) {
+    if (response) {
+        console.log(`City: ${response.city.names.en}`);
+        console.log(`Region: ${response.subdivisions[0].names.en}`);
         console.log(`Latitude: ${response.location.latitude}`);
         console.log(`Longitude: ${response.location.longitude}`);
     } else {
@@ -127,7 +129,8 @@ async function geoLookup(ipAddress) {
     }
 }
 
-geoLookup('128.101.101.101');
+geoLookup('169.255.170.2');
+
 
 
 // Call the function with a list of probe IDs and a target IP
