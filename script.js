@@ -74,9 +74,9 @@ async function getMeasurementResults(measurementIds) {
 }
 
 // Get all Probes
-async function fetchAfricanProbes() {
+async function fetchAfricanProbes(country_code) {
     // Define the API endpoint
-    const API_URL = 'https://atlas.ripe.net/api/v2/probes/?status_id=1&tags=system-ipv4-works&country_code=ZA';
+    const API_URL = `https://atlas.ripe.net/api/v2/probes/?status_id=1&tags=system-ipv4-works&country_code=${country_code}`;
 
     try {
         // Make the HTTP request to the API
@@ -105,7 +105,7 @@ async function fetchAfricanProbes() {
     }
 }
 
-fetchAfricanProbes();
+
 
 // Call the function with a list of probe IDs and a target IP
 
@@ -113,3 +113,6 @@ fetchAfricanProbes();
 
 // Test fetch measurement results function
 // getMeasurementResults([55049887]);
+
+// Fetch Probes
+fetchAfricanProbes("ZA");
