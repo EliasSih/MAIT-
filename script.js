@@ -108,28 +108,40 @@ async function fetchAfricanProbes(country_code) {
 
 // IP adress look-up
 
-
 async function geoLookup(ipAddress) {
     // Load the GeoLite2 data into memory
     const buffer = fs.readFileSync('GeoDatabase/GeoLite2-City.mmdb');
+    const asnBuffer = fs.readFileSync('GeoDatabase/GeoLite2-ASN.mmdb');
 
     // Initialize the reader with the GeoLite2 data
     const reader = await Reader.openBuffer(buffer);
+    const asnReader = await Reader.openBuffer(asnBuffer);
 
-    // Perform the lookup
-    let response = reader.city(ipAddress);
+    // Perform the city lookup
+    let cityResponse = reader.city(ipAddress);
 
-    if (response) {
-        console.log(`City: ${response.city.names.en}`);
-        console.log(`Region: ${response.subdivisions[0].names.en}`);
-        console.log(`Latitude: ${response.location.latitude}`);
-        console.log(`Longitude: ${response.location.longitude}`);
+    // Perform the ASN lookup
+    let asnResponse = asnReader.asn(ipAddress);
+
+    if (cityResponse && asnResponse) {
+        console.log(`IP: ${ipAddress}`);
+        console.log(`Country Code: ${cityResponse.country.isoCode}`);
+        console.log(`Country Name: ${cityResponse.country.names.en}`);
+        console.log(`Region: ${cityResponse.subdivisions[0].names.en}`);
+        console.log(`City Name: ${cityResponse.city.names.en}`);
+        console.log(`Latitude: ${cityResponse.location.latitude}`);
+        console.log(`Longitude: ${cityResponse.location.longitude}`);
+        console.log(`Zip Code: ${cityResponse.postal.code}`);
+        console.log(`ASN: ${asnResponse.autonomousSystemNumber}`);
+        console.log(`AS: ${asnResponse.autonomousSystemOrganization}`);
     } else {
         console.log(`No geolocation data found for IP: ${ipAddress}`);
     }
 }
 
 geoLookup('169.255.170.2');
+
+
 
 
 
