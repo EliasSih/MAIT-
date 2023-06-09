@@ -18,7 +18,8 @@ async function createMeasurement(probes, target) {
                 "target": target,
                 "description": "Traceroute to " + target,
                 "type": "traceroute",
-                "is_oneoff": true, // Set to true to run the measurement only once
+                "is_oneoff": false, // Set to true to run the measurement only once
+                "interval": 600,
                 "protocol": "ICMP",
                 "af": 4
             }
@@ -124,30 +125,32 @@ async function geoLookup(ipAddress) {
     let asnResponse = asnReader.asn(ipAddress);
 
     if (cityResponse && asnResponse) {
-        console.log(`IP: ${ipAddress}`);
-        console.log(`Country Code: ${cityResponse.country.isoCode}`);
-        console.log(`Country Name: ${cityResponse.country.names.en}`);
-        console.log(`Region: ${cityResponse.subdivisions[0].names.en}`);
-        console.log(`City Name: ${cityResponse.city.names.en}`);
-        console.log(`Latitude: ${cityResponse.location.latitude}`);
-        console.log(`Longitude: ${cityResponse.location.longitude}`);
-        console.log(`Zip Code: ${cityResponse.postal.code}`);
-        console.log(`ASN: ${asnResponse.autonomousSystemNumber}`);
-        console.log(`AS: ${asnResponse.autonomousSystemOrganization}`);
+        const result = {
+            ip: ipAddress,
+            countryCode: cityResponse.country.isoCode,
+            countryName: cityResponse.country.names.en,
+            region: cityResponse.subdivisions[0].names.en,
+            cityName: cityResponse.city.names.en,
+            latitude: cityResponse.location.latitude,
+            longitude: cityResponse.location.longitude,
+            zipCode: cityResponse.postal.code,
+            asn: asnResponse.autonomousSystemNumber,
+            as: asnResponse.autonomousSystemOrganization
+        }
+        console.log(result);
+        return result;
     } else {
         console.log(`No geolocation data found for IP: ${ipAddress}`);
+        return `No geolocation data found for IP: ${ipAddress}`;
     }
 }
 
-geoLookup('169.255.170.2');
-
-
-
-
+// Use the function
+// geoLookup('169.255.170.2');
 
 // Call the function with a list of probe IDs and a target IP
 
-// createMeasurement([1002544], '169.239.165.17');
+createMeasurement([1002544,4153], '169.239.165.17');
 
 // Test fetch measurement results function
 // getMeasurementResults([55049887]);
