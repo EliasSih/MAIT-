@@ -18,7 +18,8 @@ async function createMeasurement(probes, target) {
                 "target": target,
                 "description": "Traceroute to " + target,
                 "type": "traceroute",
-                "is_oneoff": true, // Set to true to run the measurement only once
+                "is_oneoff": false, // Set to true to run the measurement only once
+                "interval": 600,
                 "protocol": "ICMP",
                 "af": 4
             }
@@ -145,11 +146,11 @@ async function geoLookup(ipAddress) {
 }
 
 // Use the function
-geoLookup('169.255.170.2');
+// geoLookup('169.255.170.2');
 
 // Call the function with a list of probe IDs and a target IP
 
-// createMeasurement([1002544], '169.239.165.17');
+createMeasurement([1002544,4153], '169.239.165.17');
 
 // Test fetch measurement results function
 // getMeasurementResults([55049887]);
