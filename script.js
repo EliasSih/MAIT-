@@ -56,6 +56,9 @@ async function getMeasurementResults(measurementIds) {
     console.log("fetch initiated!");
     const API_KEY = '216fafa6-2a2d-438a-9bb3-7309aa0acf59';
 
+    // Array to store results
+    const results = [];
+
     try {
         for (let i = 0; i < measurementIds.length; i++) {
             const config = {
@@ -69,11 +72,19 @@ async function getMeasurementResults(measurementIds) {
             const response = await axios(config);
             console.log(`Results for measurement ID ${measurementIds[i]}:`);
             console.log(JSON.stringify(response.data));
+
+            // Add results to array
+            results.push(response.data);
         }
     } catch (error) {
         console.error(error);
     }
+
+    // Return the array of results
+    return results;
 }
+
+
 
 // Get all Probes
 async function fetchAfricanProbes(country_code) {
@@ -150,10 +161,12 @@ async function geoLookup(ipAddress) {
 
 // Call the function with a list of probe IDs and a target IP
 
-createMeasurement([1002544,4153], '169.239.165.17');
+// createMeasurement([1002544,4153], '169.239.165.17');
 
 // Test fetch measurement results function
-// getMeasurementResults([55049887]);
-
-// Fetch Probes
-// fetchAfricanProbes("ZA");
+getMeasurementResults([55167870,55049887])
+.then(results => {
+    // Use the results here
+    console.log(results);
+})
+.catch(err => console.error(err));
