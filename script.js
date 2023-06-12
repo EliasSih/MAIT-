@@ -51,7 +51,7 @@ async function createMeasurement(probes, target) {
     }
 }
 
-async function getMeasurementResults(measurementIds) {
+async function getMeasurementResults(measurementId) {
     // Replace this with your actual RIPE Atlas API key
     console.log("fetch initiated!");
     const API_KEY = '216fafa6-2a2d-438a-9bb3-7309aa0acf59';
@@ -60,30 +60,31 @@ async function getMeasurementResults(measurementIds) {
     const results = [];
 
     try {
-        for (let i = 0; i < measurementIds.length; i++) {
-            const config = {
-                method: 'get',
-                url: `https://atlas.ripe.net/api/v2/measurements/${measurementIds[i]}/results/`,
-                headers: {
-                    'Authorization': `Key ${API_KEY}`
-                }
-            };
 
-            const response = await axios(config);
-            console.log(`Results for measurement ID ${measurementIds[i]}:`);
-            console.log(JSON.stringify(response.data));
+        const config = {
+            method: 'get',
+            url: `https://atlas.ripe.net/api/v2/measurements/${measurementId}/results/`,
+            headers: {
+                'Authorization': `Key ${API_KEY}`
+            }
+        };
 
-            // Add results to array
-            results.push(response.data);
-        }
+        const response = await axios(config);
+        // console.log(`Results for measurement ID ${measurementId}:`);
+        // console.log(JSON.stringify(response.data));
+
+        // Add results to array
+        return response.data;
+
     } catch (error) {
         console.error(error);
+        return null;
     }
 
-    // Return the array of results
-    return results;
 }
 
+// export getMeasurementResults Function
+module.exports = getMeasurementResults;
 
 
 // Get all Probes
@@ -114,7 +115,7 @@ async function fetchAfricanProbes(country_code) {
     } catch (error) {
         // If the request failed (e.g. network error, API returned an error status), log the error to the console and rethrow it
         console.error('Failed to fetch probe list:', error);
-        throw error;
+        return null;
     }
 }
 
@@ -164,9 +165,9 @@ async function geoLookup(ipAddress) {
 // createMeasurement([1002544,4153], '169.239.165.17');
 
 // Test fetch measurement results function
-getMeasurementResults([55167870,55049887])
-.then(results => {
-    // Use the results here
-    console.log(results);
-})
-.catch(err => console.error(err));
+// getMeasurementResults(55167870)
+// .then(results => {
+//     // Use the results here
+//     console.log(results);
+// })
+// .catch(err => console.error(err));
