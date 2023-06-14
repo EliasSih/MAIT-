@@ -18,7 +18,7 @@ async function createMeasurement(probes, target) {
                 "target": target,
                 "description": "Traceroute to " + target,
                 "type": "traceroute",
-                "is_oneoff": false, // Set to true to run the measurement only once
+                "is_oneoff": true, // Set to true to run the measurement only once
                 "interval": 600,
                 "protocol": "ICMP",
                 "af": 4
@@ -156,6 +156,41 @@ async function geoLookup(ipAddress) {
         return `No geolocation data found for IP: ${ipAddress}`;
     }
 }
+
+// Get ASN information 
+// Define the async function
+async function getAsnInfo(asn) {
+    const url = `https://stat.ripe.net/data/announced-prefixes/data.json?resource=AS${asn}`;
+
+    try {
+        const response = await axios.get(url);
+        const prefixes = response.data.data.prefixes.map(p => p.prefix);
+
+        console.log(`ASN: AS${asn}`);
+        console.log('Prefixes:', prefixes);
+    } catch (error) {
+        console.error(`Error: ${error}`);
+    }
+}
+
+// Load ASNs from a local file
+async function processLineByLine(filepath) {
+  const fileStream = fs.createReadStream(filepath);
+
+  const rl = readline.createInterface({
+    input: fileStream,
+    crlfDelay: Infinity
+  });
+
+  for await (const line of rl) {
+    // Each line in the text file is a ASN
+    const asn = line.split(' ')[0]; // Assumes the ASN is the first element on the line
+    await getAsnInfo(asn);
+  }
+}
+
+// Call the function with the path to your file as argument
+processLineByLine('afrinic_latest.txt');
 
 // Use the function
 // geoLookup('169.255.170.2');
