@@ -3,7 +3,7 @@ const axios = require('axios');
 const maxmind = require('maxmind');
 const Reader = require('@maxmind/geoip2-node').Reader;
 const fs = require('fs');
-
+const readline = require('readline');
 // Section : simple traceroute request to ripe atlas
 // from one probe to destination ip
 
@@ -157,7 +157,7 @@ async function geoLookup(ipAddress) {
     }
 }
 
-// Get ASN information 
+// Get ASN information
 // Define the async function
 async function getAsnInfo(asn) {
     const url = `https://stat.ripe.net/data/announced-prefixes/data.json?resource=AS${asn}`;
@@ -189,8 +189,8 @@ async function processLineByLine(filepath) {
   }
 }
 
-// Call the function with the path to your file as argument
-processLineByLine('afrinic_latest.txt');
+// Get ASN information
+processLineByLine('afrinic_asns.txt');
 
 // Use the function
 // geoLookup('169.255.170.2');
