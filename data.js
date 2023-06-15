@@ -4,7 +4,7 @@
 const neo4j = require('neo4j-driver');
 const driver = neo4j.driver("bolt://localhost:7687", neo4j.auth.basic("neo4j", "eli@sol2"));
 
-const getMeasurementResults = require('./script.js');
+const getMeasurementResults = require('./index.js');
 
 // Specify your database name here
 const databaseName = 'neo4j';
