@@ -166,8 +166,11 @@ async function getAsnInfo(asn) {
         const response = await axios.get(url);
         const prefixes = response.data.data.prefixes.map(p => p.prefix);
 
-        console.log(`ASN: AS${asn}`);
-        console.log('Prefixes:', prefixes);
+        // Only print the AS Number and prefixes if there are any prefixes
+        if (prefixes.length > 0) {
+            console.log(`ASN: AS${asn}`);
+            console.log('Prefixes:', prefixes);
+        }
     } catch (error) {
         console.error(`Error: ${error}`);
     }
@@ -190,7 +193,7 @@ async function processLineByLine(filepath) {
 }
 
 // Get ASN information
-processLineByLine('afrinic_asns.txt');
+processLineByLine('Database/afrinic_asns.txt');
 
 // Use the function
 // geoLookup('169.255.170.2');
