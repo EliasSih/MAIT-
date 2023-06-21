@@ -4,6 +4,9 @@ const maxmind = require('maxmind');
 const Reader = require('@maxmind/geoip2-node').Reader;
 const fs = require('fs');
 const readline = require('readline');
+const ip = require('ip');
+const { exec } = require('child_process');
+
 // Section : simple traceroute request to ripe atlas
 // from one probe to destination ip
 
@@ -19,7 +22,7 @@ async function createMeasurement(probes, target) {
                 "description": "Traceroute to " + target,
                 "type": "traceroute",
                 "is_oneoff": true, // Set to true to run the measurement only once
-                "interval": 600,
+                // "interval": 600, // Set interval when you are running periodic measurements
                 "protocol": "ICMP",
                 "af": 4
             }
@@ -177,7 +180,7 @@ async function getAsnInfo(asn) {
 }
 
 // Load ASNs from a local file
-async function processLineByLine(filepath) {
+async function getPrefixes(filepath) {
   const fileStream = fs.createReadStream(filepath);
 
   const rl = readline.createInterface({
@@ -192,15 +195,56 @@ async function processLineByLine(filepath) {
   }
 }
 
+function getTracerouteTarget(prefix) {
+    // Parse the prefix to get the network address and prefix length
+    const [networkAddress, prefixLength] = prefix.split('/');
+
+    // Calculate the first usable IP address in the range, i.e., the second IP address
+    const secondIP = ip.fromLong(ip.toLong(networkAddress) + 2);
+
+    return secondIP;
+}
+
+function scanNetwork(prefix, callback) {
+    exec(`zmap -p 80 -o results.csv ${prefix}`, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`exec error: ${error}`);
+            return;
+        }
+
+        console.log(`stdout: ${stdout}`);
+        console.error(`stderr: ${stderr}`);
+
+        // Process the output file 'results.csv' and find the first reachable IP
+        // You can do this by reading the file line by line until you find the first IP
+
+        // ...
+        let firstReachableIP = '...'; // replace '...' with the code to get the first reachable IP
+
+        callback(firstReachableIP);
+    });
+}
+
+// Usage:
+scanNetwork('192.0.2.0/24', (ip) => {
+    console.log('First reachable IP: ' + ip);
+});
+
+// Usage
+const prefix = '192.0.2.0/24';
+// console.log(getTracerouteTarget(prefix));  // Outputs: '192.0.2.2'
+
+
+
 // Get ASN information
-processLineByLine('Database/afrinic_asns.txt');
+// getPrefixes('Database/afrinic_asns.txt');
 
 // Use the function
 // geoLookup('169.255.170.2');
 
 // Call the function with a list of probe IDs and a target IP
 
-// createMeasurement([1002544,4153], '169.239.165.17');
+// createMeasurement([4153], '154.114.14.254');
 
 // Test fetch measurement results function
 // getMeasurementResults(55167870)
