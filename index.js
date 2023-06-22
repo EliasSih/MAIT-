@@ -226,9 +226,29 @@ function scanNetwork(prefix, callback) {
 }
 
 // Usage:
-scanNetwork('192.0.2.0/24', (ip) => {
+scanNetwork('196.21.163.0/24', (ip) => {
     console.log('First reachable IP: ' + ip);
 });
+
+const util = require('util');
+// const exec = util.promisify(require('child_process').exec);
+
+async function nmapScan(ip) {
+    try {
+        // Perform the scan
+        const { stdout, stderr } = await exec(`nmap -Pn ${ip}`);
+
+        // Print the results
+        console.log('stdout:', stdout);
+        console.log('stderr:', stderr);
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+// Usage
+nmapScan('192.0.2.0/24');
+
 
 // Usage
 const prefix = '192.0.2.0/24';
