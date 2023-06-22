@@ -6,6 +6,8 @@ const fs = require('fs');
 const readline = require('readline');
 const ip = require('ip');
 const { exec } = require('child_process');
+const util = require('util');
+
 
 // Section : simple traceroute request to ripe atlas
 // from one probe to destination ip
@@ -53,6 +55,8 @@ async function createMeasurement(probes, target) {
         console.error(error);
     }
 }
+
+module.exports.createMeasurement = createMeasurement;
 
 async function getMeasurementResults(measurementId) {
     // Replace this with your actual RIPE Atlas API key
@@ -205,33 +209,41 @@ function getTracerouteTarget(prefix) {
     return secondIP;
 }
 
-function scanNetwork(prefix, callback) {
-    exec(`zmap -p 80 -o results.csv ${prefix}`, (error, stdout, stderr) => {
-        if (error) {
-            console.error(`exec error: ${error}`);
-            return;
-        }
+function scanNetwork(prefixes, callback) {
+    prefixes.forEach((prefix) => {
+        exec(`rm -f results.csv && zmap -p 80 -o results.csv ${prefix}`, (error, stdout, stderr) => {
+            if (error) {
+                console.error(`exec error: ${error}`);
+                return;
+            }
 
-        console.log(`stdout: ${stdout}`);
-        console.error(`stderr: ${stderr}`);
+            console.log(`stdout: ${stdout}`);
+            console.error(`stderr: ${stderr}`);
 
-        // Process the output file 'results.csv' and find the first reachable IP
-        // You can do this by reading the file line by line until you find the first IP
+            // Process the output file 'results.csv' and find the first reachable IP
+            let lineReader = readline.createInterface({
+                input: fs.createReadStream('results.csv')
+            });
 
-        // ...
-        let firstReachableIP = '...'; // replace '...' with the code to get the first reachable IP
+            lineReader.on('line', function (line) {
+                let firstReachableIP = line;  // Get the first line/IP from the results.csv file
 
-        callback(firstReachableIP);
+                // Stop the line reader and call the callback
+                lineReader.close();
+                lineReader.removeAllListeners();
+
+                callback(firstReachableIP, prefix);
+            });
+        });
     });
 }
 
 // Usage:
-scanNetwork('196.21.163.0/24', (ip) => {
-    console.log('First reachable IP: ' + ip);
-});
+// scanNetwork(['196.21.32.0/21', '196.21.242.0/24', '196.21.175.0/24',
+// '196.13.119.0/24', '196.24.17.0/24', '196.21.84.0/23'], (ip, prefix) => {
+//     console.log(`First reachable IP in prefix ${prefix}: ` + ip);
+// });
 
-const util = require('util');
-// const exec = util.promisify(require('child_process').exec);
 
 async function nmapScan(ip) {
     try {
@@ -247,7 +259,7 @@ async function nmapScan(ip) {
 }
 
 // Usage
-nmapScan('192.0.2.0/24');
+// nmapScan('192.0.2.0/24');
 
 
 // Usage
@@ -264,7 +276,7 @@ const prefix = '192.0.2.0/24';
 
 // Call the function with a list of probe IDs and a target IP
 
-// createMeasurement([4153], '154.114.14.254');
+createMeasurement([4153], '154.114.14.254');
 
 // Test fetch measurement results function
 // getMeasurementResults(55167870)
