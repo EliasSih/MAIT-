@@ -157,6 +157,10 @@ async function geoLookup(ipAddress) {
             as: asnResponse.autonomousSystemOrganization
         }
         console.log(result);
+        console.log("--------------------CITY RESPONSE-----------------------");
+        console.log(cityResponse);
+        console.log("--------------------ASN RESPONSE-----------------------");
+        console.log(asnResponse);
         return result;
     } else {
         console.log(`No geolocation data found for IP: ${ipAddress}`);
@@ -171,7 +175,9 @@ async function getAsnInfo(asn) {
 
     try {
         const response = await axios.get(url);
-        const prefixes = response.data.data.prefixes.map(p => p.prefix);
+        const prefixes = response.data.data.prefixes
+            .map(p => p.prefix)
+            .filter(p => !p.includes(':'));  // Ignore IPv6 prefixes
 
         // Only print the AS Number and prefixes if there are any prefixes
         if (prefixes.length > 0) {
@@ -238,13 +244,6 @@ function scanNetwork(prefixes, callback) {
     });
 }
 
-// Usage:
-// scanNetwork(['196.21.32.0/21', '196.21.242.0/24', '196.21.175.0/24',
-// '196.13.119.0/24', '196.24.17.0/24', '196.21.84.0/23'], (ip, prefix) => {
-//     console.log(`First reachable IP in prefix ${prefix}: ` + ip);
-// });
-
-
 async function nmapScan(ip) {
     try {
         // Perform the scan
@@ -258,6 +257,14 @@ async function nmapScan(ip) {
     }
 }
 
+
+// Z Map Network Scan
+// scanNetwork(['196.21.32.0/21', '196.21.242.0/24', '196.21.175.0/24',
+// '196.13.119.0/24', '196.24.17.0/24', '196.21.84.0/23'], (ip, prefix) => {
+//     console.log(`First reachable IP in prefix ${prefix}: ` + ip);
+// });
+
+
 // Usage
 // nmapScan('192.0.2.0/24');
 
@@ -269,14 +276,14 @@ const prefix = '192.0.2.0/24';
 
 
 // Get ASN information
-// getPrefixes('Database/afrinic_asns.txt');
+getPrefixes('Database/afrinic_asns.txt');
 
 // Use the function
 // geoLookup('169.255.170.2');
 
 // Call the function with a list of probe IDs and a target IP
 
-createMeasurement([4153], '154.114.14.254');
+// createMeasurement([4153, 4503], '196.21.242.180');
 
 // Test fetch measurement results function
 // getMeasurementResults(55167870)
