@@ -8,6 +8,8 @@ const ip = require('ip');
 const { exec } = require('child_process');
 const util = require('util');
 
+const neo4j = require('neo4j-driver');
+const driver = neo4j.driver("bolt://localhost:7687", neo4j.auth.basic("neo4j", "eli@sol2"));
 
 // Section : simple traceroute request to ripe atlas
 // from one probe to destination ip
@@ -157,6 +159,10 @@ async function geoLookup(ipAddress) {
             as: asnResponse.autonomousSystemOrganization
         }
         console.log(result);
+        console.log("--------------------CITY RESPONSE-----------------------");
+        console.log(cityResponse);
+        console.log("--------------------ASN RESPONSE-----------------------");
+        console.log(asnResponse);
         return result;
     } else {
         console.log(`No geolocation data found for IP: ${ipAddress}`);
@@ -164,24 +170,48 @@ async function geoLookup(ipAddress) {
     }
 }
 
-// Get ASN information
-// Define the async function
+// Assuming you have initiated Neo4j driver somewhere above in the code
+// const driver = neo4j.driver(uri, neo4j.auth.basic(user, password));
+
 async function getAsnInfo(asn) {
     const url = `https://stat.ripe.net/data/announced-prefixes/data.json?resource=AS${asn}`;
 
     try {
         const response = await axios.get(url);
-        const prefixes = response.data.data.prefixes.map(p => p.prefix);
+        let prefixes = response.data.data.prefixes
+            .map(p => p.prefix)
+            .filter(p => !p.includes(':'));  // Ignore IPv6 prefixes
+
+        // Limit the prefixes to only the first 5
+        prefixes = prefixes.slice(0, 5);
 
         // Only print the AS Number and prefixes if there are any prefixes
         if (prefixes.length > 0) {
             console.log(`ASN: AS${asn}`);
             console.log('Prefixes:', prefixes);
+
+            // Create a session to interact with the database
+            const session = driver.session({database: 'neo4j'});
+
+            // Iterate over each prefix
+            for (let prefix of prefixes) {
+                // Write the ASN and prefix into Neo4j
+                await session.run(
+                    `MERGE (a:Asn {asn: $asn})
+                     MERGE (p:Prefix {prefix: $prefix})
+                     MERGE (a)-[:HAS]->(p)`,
+                    {asn: `AS${asn}`, prefix: prefix}
+                );
+            }
+
+            // Close the session
+            session.close();
         }
     } catch (error) {
         console.error(`Error: ${error}`);
     }
 }
+
 
 // Load ASNs from a local file
 async function getPrefixes(filepath) {
@@ -197,6 +227,9 @@ async function getPrefixes(filepath) {
     const asn = line.split(' ')[0]; // Assumes the ASN is the first element on the line
     await getAsnInfo(asn);
   }
+
+  // Close the driver connection when you're finished
+  driver.close();
 }
 
 function getTracerouteTarget(prefix) {
@@ -238,13 +271,6 @@ function scanNetwork(prefixes, callback) {
     });
 }
 
-// Usage:
-// scanNetwork(['196.21.32.0/21', '196.21.242.0/24', '196.21.175.0/24',
-// '196.13.119.0/24', '196.24.17.0/24', '196.21.84.0/23'], (ip, prefix) => {
-//     console.log(`First reachable IP in prefix ${prefix}: ` + ip);
-// });
-
-
 async function nmapScan(ip) {
     try {
         // Perform the scan
@@ -258,6 +284,14 @@ async function nmapScan(ip) {
     }
 }
 
+
+// Z Map Network Scan
+// scanNetwork(['196.21.32.0/21', '196.21.242.0/24', '196.21.175.0/24',
+// '196.13.119.0/24', '196.24.17.0/24', '196.21.84.0/23'], (ip, prefix) => {
+//     console.log(`First reachable IP in prefix ${prefix}: ` + ip);
+// });
+
+
 // Usage
 // nmapScan('192.0.2.0/24');
 
@@ -269,14 +303,14 @@ const prefix = '192.0.2.0/24';
 
 
 // Get ASN information
-// getPrefixes('Database/afrinic_asns.txt');
+getPrefixes('Database/afrinic_asns.txt');
 
 // Use the function
 // geoLookup('169.255.170.2');
 
 // Call the function with a list of probe IDs and a target IP
 
-createMeasurement([4153], '154.114.14.254');
+// createMeasurement([4153, 4503], '196.21.242.180');
 
 // Test fetch measurement results function
 // getMeasurementResults(55167870)
