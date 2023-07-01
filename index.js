@@ -189,29 +189,11 @@ async function getAsnInfo(asn) {
         if (prefixes.length > 0) {
             console.log(`ASN: AS${asn}`);
             console.log('Prefixes:', prefixes);
-
-            // Create a session to interact with the database
-            const session = driver.session({database: 'neo4j'});
-
-            // Iterate over each prefix
-            for (let prefix of prefixes) {
-                // Write the ASN and prefix into Neo4j
-                await session.run(
-                    `MERGE (a:Asn {asn: $asn})
-                     MERGE (p:Prefix {prefix: $prefix})
-                     MERGE (a)-[:HAS]->(p)`,
-                    {asn: `AS${asn}`, prefix: prefix}
-                );
-            }
-
-            // Close the session
-            session.close();
         }
     } catch (error) {
         console.error(`Error: ${error}`);
     }
 }
-
 
 // Load ASNs from a local file
 async function getPrefixes(filepath) {
@@ -303,14 +285,14 @@ const prefix = '192.0.2.0/24';
 
 
 // Get ASN information
-getPrefixes('Database/afrinic_asns.txt');
+// getPrefixes('Database/afrinic_asns.txt');
 
 // Use the function
 // geoLookup('169.255.170.2');
 
 // Call the function with a list of probe IDs and a target IP
 
-// createMeasurement([4153, 4503], '196.21.242.180');
+createMeasurement([4153, 1002544], '192.0.2.2');
 
 // Test fetch measurement results function
 // getMeasurementResults(55167870)
