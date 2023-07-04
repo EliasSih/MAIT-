@@ -2,6 +2,9 @@ const axios = require('axios');
 const neo4j = require('neo4j-driver');
 const driver = neo4j.driver("bolt://localhost:7687", neo4j.auth.basic("neo4j", "eli@sol2")); //Replace with your connection details
 
+// TODO:
+// fix the error: Failed to fetch probe list: AxiosError: read ECONNRESET
+
 // Get all Probes
 async function fetchAfricanProbes(country_code) {
     // Define the API endpoint
