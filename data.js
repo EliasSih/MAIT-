@@ -13,10 +13,7 @@ const session = driver.session({ database: databaseName });
 
 
 // Define an async function named processTracerouteData
-async function processTracerouteData(data) {
-    // Create a session to interact with the database
-    const session = driver.session({database: 'neo4j'});
-
+async function processTracerouteData(data, session) {
     try {
         // Iterate over each measurement
         for (let measurement of data) {
@@ -53,25 +50,50 @@ async function processTracerouteData(data) {
         }
     } catch (e) {
         console.error(e);
-    } finally {
-        // Don't forget to close the session and the driver connection when you're finished
-        session.close();
-        driver.close();
     }
 }
 
 // Then you can call this function with your data:
 
-async function main() {
+async function main(n) {
     try {
-        let data = await getMeasurementResults(55167870);
+        n = neo4j.int(Math.floor(n));
 
-        // Call the processTracerouteData function
-        await processTracerouteData(data);
+        // Fetch the first n measurement IDs from the database where isRead is set to false
+        const result = await session.run(
+            `MATCH (m:Measurement {isRead: false})
+            RETURN m.measurementId as measurementId
+            LIMIT $limit`,
+            { limit: n }
+        );
+
+        // Extract measurement IDs
+        const measurementIds = result.records.map(record => record.get('measurementId'));
+
+        // Loop through the measurementIds
+        for(let measurementId of measurementIds) {
+            let data = await getMeasurementResults(measurementId);
+
+            // Process the traceroute data
+            await processTracerouteData(data, session);
+
+            // Update the isRead property for the measurement ID to true
+            await session.run(
+                `MATCH (m:Measurement {measurementId: $measurementId})
+                SET m.isRead = true
+                RETURN m`,
+                { measurementId: measurementId }
+            );
+        }
+
     } catch (err) {
         console.error(err);
+    } finally {
+        // These should be the last lines in your main function.
+        session.close();
+        driver.close();
     }
 }
 
-// Call main function
-main();
+// Fetch and process the first 5 unread measurements
+main(1);
