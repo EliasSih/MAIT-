@@ -13,6 +13,7 @@ const { getGeoInfo } = require('./ip2locationTest.js');
 
 // IP adress look-up
 async function geoLookup(ipAddress) {
+    let geodata = null;
     try {
         // Load the GeoLite2 data into memory
         const buffer = fs.readFileSync('GeoDatabase/GeoLite2-City.mmdb');
@@ -28,27 +29,32 @@ async function geoLookup(ipAddress) {
         // Perform the ASN lookup
         let asnResponse = asnReader.asn(ipAddress);
 
-        const result = {
-            // ip: ipAddress,
+        geodata = {
             countryCode: cityResponse.country.isoCode,
             countryName: cityResponse.country.names.en,
-            region: cityResponse.subdivisions[0].names.en,
+            region: cityResponse.subdivisions[0].isoCode,
             cityName: cityResponse.city.names.en,
             latitude: cityResponse.location.latitude,
             longitude: cityResponse.location.longitude,
             zipCode: cityResponse.postal.code,
             asn: asnResponse.autonomousSystemNumber,
             as: asnResponse.autonomousSystemOrganization
-        }
-        return result;
+        };
     } catch (err) {
-        console.log(`No geolocation data found for IP: ${ipAddress}. Error: ${err}`);
-        // use getGeoInfo function from ip2location script
-        return getGeoInfo(ipAddress);
-        // return null;
+        console.log(`MaxMind: No geolocation data found for IP: ${ipAddress}. Error: ${err}`);
     }
-}
 
+    if (!geodata) {
+        try {
+            // Use getGeoInfo function from ip2location script as fallback
+            geodata = await getGeoInfo(ipAddress);
+        } catch (err) {
+            console.log(`IP2Location: No geolocation data found for IP: ${ipAddress}. Error: ${err}`);
+            return null;
+        }
+    }
+    return geodata;
+}
 
 async function addGeodataToRouters() {
     try {
