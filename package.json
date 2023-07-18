@@ -34,7 +34,9 @@
   "dependencies": {
     "@maxmind/geoip2-node": "^4.0.0",
     "axios": "^1.4.0",
+    "csv-parse": "^5.4.0",
     "ip": "^1.1.8",
+    "ip2location-nodejs": "^9.5.0",
     "ip6": "^0.2.10",
     "neo4j-driver": "^5.9.1",
     "node-nmap": "^4.0.0"
