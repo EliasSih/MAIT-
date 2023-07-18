@@ -8,6 +8,8 @@ const driver = neo4j.driver("bolt://localhost:7687", neo4j.auth.basic("neo4j", "
 // Define the session
 const session = driver.session();
 
+// import getGeoInfo from ip2location script
+const { getGeoInfo } = require('./ip2locationTest.js');
 
 // IP adress look-up
 async function geoLookup(ipAddress) {
@@ -41,7 +43,9 @@ async function geoLookup(ipAddress) {
         return result;
     } catch (err) {
         console.log(`No geolocation data found for IP: ${ipAddress}. Error: ${err}`);
-        return null;
+        // use getGeoInfo function from ip2location script
+        return getGeoInfo(ipAddress);
+        // return null;
     }
 }
 
