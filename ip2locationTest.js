@@ -26,7 +26,7 @@ function getASN(ipAddress) {
       let end = Number(row[1]);
 
       if(ipNumber >= start && ipNumber <= end){
-        resolve({asn: row[3], as: row[4]}); // return object with both AS Number and AS Name
+        resolve({asn: parseInt(row[3]), as: row[4]}); // return object with both AS Number and AS Name
         return;
       }
     })
@@ -46,22 +46,24 @@ async function getGeoInfo(ipAddress) {
   }
 
   let geoInfo = {
-    'countryCode': result.countryShort,
-    'countryName': result.countryLong,
-    'region': result.region,
-    'cityName': result.city,
-    'latitude': result.latitude,
-    'longitude': result.longitude,
-    'zipCode': result.zipCode,
-    'asn': asnInfo ? asnInfo.asn : null,  // AS Number
-    'as': asnInfo ? asnInfo.as : null // AS Name
+    countryCode: result.countryShort,
+    countryName: result.countryLong,
+    region: result.region,
+    cityName: result.city,
+    latitude: result.latitude,
+    longitude: result.longitude,
+    zipCode: result.zipCode,
+    asn: asnInfo ? asnInfo.asn : null,  // AS Number
+    as: asnInfo ? asnInfo.as : null // AS Name
   };
 
   console.log(geoInfo);
   return geoInfo;
 }
 
-let ipAddress = '155.232.128.174';
+module.exports = { getGeoInfo };
+
+let ipAddress = '196.60.96.33';
 getGeoInfo(ipAddress);
 
 ip2location.close();
