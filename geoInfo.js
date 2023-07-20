@@ -16,8 +16,8 @@ async function geoLookup(ipAddress) {
     let geodata = null;
     try {
         // Load the GeoLite2 data into memory
-        const buffer = fs.readFileSync('GeoDatabase/GeoLite2-City.mmdb');
-        const asnBuffer = fs.readFileSync('GeoDatabase/GeoLite2-ASN.mmdb');
+        const buffer = fs.readFileSync('GeoDatabase-maxmind/GeoLite2-City.mmdb');
+        const asnBuffer = fs.readFileSync('GeoDatabase-maxmind/GeoLite2-ASN.mmdb');
 
         // Initialize the reader with the GeoLite2 data
         const reader = await Reader.openBuffer(buffer);
