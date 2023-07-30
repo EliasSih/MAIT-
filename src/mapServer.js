@@ -24,20 +24,29 @@ app.get('/', (req, res) => {
 
 // New route to get router data
 app.get('/getRouterData', async (req, res) => {
-    // Open a new session for this request
     const session = driver.session({ database: databaseName });
+    const mode = req.query.mode;
 
     try {
-        // Write a Cypher query to get router data grouped by location
-        let query = `
-            MATCH (r:Router)
-            WITH r.longitude AS longitude, r.latitude AS latitude, COLLECT(r) AS routers
-            RETURN longitude, latitude, [router IN routers | router.ip] AS ips
-        `;
+        let query;
+
+        if (mode === 'ASN') {
+            query = `
+                MATCH (r:Router)
+                WITH r.longitude AS longitude, r.latitude AS latitude, r.asn AS asn, COLLECT(r) AS routers
+                WHERE SIZE(routers) > 1
+                RETURN longitude, latitude, [router IN routers | router.ip] AS ips, asn
+            `;
+        } else {
+            query = `
+                MATCH (r:Router)
+                WITH r.longitude AS longitude, r.latitude AS latitude, COLLECT(r) AS routers
+                RETURN longitude, latitude, [router IN routers | router.ip] AS ips
+            `;
+        }
 
         let results = await session.run(query);
 
-        // Format the results into GeoJSON
         let geojson = {
             type: "FeatureCollection",
             features: results.records.map(record => ({
@@ -53,8 +62,10 @@ app.get('/getRouterData', async (req, res) => {
         };
 
         res.json(geojson);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'An error occurred.' });
     } finally {
-        // Make sure to close the session
         session.close();
     }
 });
@@ -87,6 +98,9 @@ app.get('/getASNData', async (req, res) => {
         };
 
         res.json(geojson);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'An error occurred.' });
     } finally {
         session.close();
     }
@@ -120,14 +134,11 @@ app.get('/getRouterDetails', async (req, res) => {
     }
 });
 
-
 // New route to get link data
 app.get('/getLinkData', async (req, res) => {
-    // Open a new session for this request
     const session = driver.session({ database: databaseName });
 
     try {
-        // Write a Cypher query to get link data
         let query = `
             MATCH (r1:Router)-[:LINKS_TO]->(r2:Router)
             RETURN r1.identity AS id1, r2.identity AS id2, r1.longitude AS longitude1, r1.latitude AS latitude1, r2.longitude AS longitude2, r2.latitude AS latitude2
@@ -136,13 +147,12 @@ app.get('/getLinkData', async (req, res) => {
 
         let results = await session.run(query);
 
-        // Format the results into GeoJSON
         let geojson = {
             type: "FeatureCollection",
             features: results.records.map((record, index) => ({
                 type: "Feature",
                 properties: {
-                    id: index, // Add unique id for each link
+                    id: index,
                 },
                 geometry: {
                     type: "LineString",
@@ -152,8 +162,10 @@ app.get('/getLinkData', async (req, res) => {
         };
 
         res.json(geojson);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'An error occurred.' });
     } finally {
-        // Make sure to close the session
         session.close();
     }
 });

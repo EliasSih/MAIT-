@@ -8,11 +8,24 @@ var map = new mapboxgl.Map({
   zoom: 2 // starting zoom
 });
 
+let markers = [];
+let layers = [];
+
 // Function to add a router marker to the map
 function addRouterMarker(router) {
-  var marker = new mapboxgl.Marker()
-    .setLngLat([router.geometry.coordinates[0], router.geometry.coordinates[1]])
-    .addTo(map);
+  // Create marker element
+  const el = document.createElement('div');
+  el.className = 'router-marker';
+
+  // Add marker to map at router location
+  const marker = new mapboxgl.Marker(el)
+      .setLngLat([router.geometry.coordinates[0], router.geometry.coordinates[1]])
+      .addTo(map);
+
+  // console.log(router.geometry.coordinates[0]);
+
+  // Add the new marker to the markers array
+  markers.push(marker);
 
   var popup = new mapboxgl.Popup({
     offset: 25,
@@ -72,17 +85,30 @@ function addRouterMarker(router) {
 }
 
 // Function to add a link to the map
-function addLink(link) {
-  map.addLayer({
-    id: `link-${link.properties.id}`, // assuming each link has a unique ID
-    type: 'line',
-    source: {
-      type: 'geojson',
-      data: link
-    },
-    layout: { 'line-join': 'round', 'line-cap': 'round' },
-    paint: { 'line-color': '#888', 'line-width': 2 }
-  });
+function addLink(feature) {
+    // Create unique id for layer
+    const id = 'link' + feature.properties.id;
+
+    // Add the new id to the layers array
+    layers.push(id);
+
+    // Add line to map
+    map.addLayer({
+        id: id,
+        type: 'line',
+        source: {
+            type: 'geojson',
+            data: feature
+        },
+        layout: {
+            'line-join': 'round',
+            'line-cap': 'round'
+        },
+        paint: {
+            'line-color': '#888',
+            'line-width': 1
+        }
+    });
 }
 
 // Fetch router data from the server and add each router to the map
@@ -90,7 +116,8 @@ fetch('/getRouterData')
   .then(response => response.json())
   .then(data => {
     data.features.forEach(addRouterMarker);
-  });
+  })
+  .catch(error => console.error('Error:', error));
 
 // Fetch link data from the server and add each link to the map
 fetch('/getLinkData')
@@ -99,30 +126,73 @@ fetch('/getLinkData')
     data.features.forEach(addLink);
   });
 
-  //--------------------------------event listeners-----------------------------------
+//--------------------------------event listeners-----------------------------------
 
-  // show input fields when path filter is clicked
-  document.addEventListener('DOMContentLoaded', (event) => {
-    const pathFilter = document.querySelector('input[value="path"]');
-    const inputDiv = document.getElementById('inputDiv');
+// show input fields when path filter is clicked
+document.addEventListener('DOMContentLoaded', (event) => {
+  const pathFilter = document.querySelector('input[value="path"]');
+  const inputDiv = document.getElementById('inputDiv');
 
-    pathFilter.addEventListener('change', (event) => {
-        if (event.target.checked) {
-            inputDiv.style.display = 'flex';
-        } else {
-            inputDiv.style.display = 'none';
-        }
-    });
+  pathFilter.addEventListener('change', (event) => {
+    if (event.target.checked) {
+      inputDiv.style.display = 'flex';
+    } else {
+      inputDiv.style.display = 'none';
+    }
+  });
 });
 
 //show search bar when filters checked
 let checkboxes = document.querySelectorAll("input[name='filters']");
 checkboxes.forEach(checkbox => {
-    checkbox.addEventListener('change', function() {
-        if (this.value == 'path') {
-            document.getElementById('inputDiv').classList.toggle('hidden');
-        } else if (['country', 'region', 'city', 'autonomousSystem'].includes(this.value)) {
-            document.getElementById('searchDiv').classList.toggle('hidden');
-        }
+  checkbox.addEventListener('change', function() {
+    if (this.value == 'path') {
+      document.getElementById('inputDiv').classList.toggle('hidden');
+    } else if (['country', 'region', 'city', 'autonomousSystem'].includes(this.value)) {
+      document.getElementById('searchDiv').classList.toggle('hidden');
+    }
+  });
+});
+
+// toogle switch
+document.querySelector('.switch input').addEventListener('change', function() {
+  if (this.checked) {
+    fetchAndUpdateMap('IP');
+    console.log('IP Mode')
+  } else {
+    fetchAndUpdateMap('ASN');
+    console.log('ASN Mode')
+  }
+});
+
+// Fetch router data from the server and add each router to the map
+function fetchAndUpdateMap(mode) {
+  // First, remove all existing markers and layers from the map
+  // This assumes you're keeping track of these in arrays called `markers` and `layers`
+  for (let marker of markers) {
+    marker.remove();
+  }
+  for (let layer of layers) {
+    if (map.getLayer(layer)) {
+      map.removeLayer(layer);
+      map.removeSource(layer);
+    }
+  }
+
+  fetch(`/getRouterData?mode=${mode}`)
+    .then(response => response.json())
+    .then(data => {
+      data.features.forEach(addRouterMarker);
+      console.log(data);
     });
+
+  fetch(`/getLinkData?mode=${mode}`)
+    .then(response => response.json())
+    .then(data => {
+      data.features.forEach(addLink);
+    });
+}
+
+map.on('load', () => {
+    fetchAndUpdateMap('IP');
 });
