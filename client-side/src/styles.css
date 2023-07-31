@@ -1,0 +1,215 @@
+body{
+  background-color: white;
+}
+
+label{
+  font-size: 1rem;
+}
+.container-fluid{
+  padding: 1% 10px;
+}
+
+.map-block{
+  background-color: #a8a8a8;
+  height: 116vh;
+  border-radius: 10px;
+  width: 70%;
+  margin-right: 1%;
+  margin-left: 2%;
+}
+
+.geoASN-block{
+  height: 60%;
+}
+
+.filters{
+    max-height: 30vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+#inputDiv {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0px;
+    display: none;
+}
+
+#inputDiv input {
+    background-color: rgba(5, 82, 181, 0.54);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 5px;
+    width: 45%;
+}
+
+#inputDiv input::placeholder {
+    color: white;
+}
+
+#inputDiv span {
+    color: white;
+}
+
+.flex-container {
+    display: flex;
+    justify-content: space-between;
+}
+
+.hidden {
+    display: none;
+}
+
+#searchInput {
+    flex-grow: 1;
+    margin-right: 10px;
+    border: none;
+    border-radius: 5px;
+}
+
+#geoASNBlock {
+    display: none;
+}
+
+
+#searchButton {
+    width: 100px;
+    background: rgba(5, 82, 181, 0.54);
+    border: none;
+    color: white;
+    border-radius: 20px;
+}
+
+
+.info-block {
+    max-height: 53vh; /* vh stands for viewport height. This caps the div height at 60% of the viewport height. */
+    overflow-y: auto; /* This makes the div scrollable in the vertical direction if the content overflows the div. */
+    overflow-x: hidden; /* This hides the horizontal scrollbar if any. */
+}
+
+.control-panel{
+  background-color: white;
+  height: 100vh;
+}
+
+.filter-block, .geoASN-block, .search-Block{
+  background-color: #a8a8a8;
+  margin-bottom: 15px;
+  padding: 10px 10px;
+  border-radius: 10px;
+}
+
+.filters, .geoASN-block-bg{
+  background-color: white;
+  border-radius: 5px;
+  padding: 5%;
+}
+
+.buttons{
+  text-align: right;
+}
+.apply{
+  border-radius: 10px;
+  border: none;
+  background: rgba(5, 82, 181, 0.54);
+  width: 120px;
+  height: 30px;
+  color: #FFF;
+  text-align: center;
+  /* font-family: Inter; */
+  font-size: 1rem;
+  font-weight: bold;
+  font-weight: 700;
+  line-height: normal;
+}
+
+/* The switch - the box around the slider */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 65px;
+  height: 34px;
+}
+
+/* Hide default HTML checkbox */
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+/* The slider */
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 26px;
+  width: 26px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+
+.slider .label-on,
+.slider .label-off {
+  color: #fff;
+  position: absolute;
+  bottom: 5px;
+  font-size: 14px;
+  user-select: none;
+}
+
+.slider .label-off {
+  left: 8px;
+  display: none;
+}
+
+.slider .label-on {
+  right: 8px;
+}
+
+input:checked + .slider {
+  background-color: #2196F3;
+}
+
+input:focus + .slider {
+  box-shadow: 0 0 1px #2196F3;
+}
+
+input:checked + .slider:before {
+  -webkit-transform: translateX(26px);
+  -ms-transform: translateX(26px);
+  transform: translateX(26px);
+}
+
+input:checked + .slider .label-on {
+  display: none;
+}
+
+input:checked + .slider .label-off {
+  display: block;
+}
+
+/* Rounded sliders */
+.slider.round {
+  border-radius: 34px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}
