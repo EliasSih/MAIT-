@@ -14,11 +14,11 @@ let layers = [];
 // Function to add a router marker to the map
 function addRouterMarker(router) {
   // Create marker element
-  const el = document.createElement('div');
-  el.className = 'router-marker';
+  // const el = document.createElement('div');
+  // el.className = 'router-marker';
 
   // Add marker to map at router location
-  const marker = new mapboxgl.Marker(el)
+  const marker = new mapboxgl.Marker()
       .setLngLat([router.geometry.coordinates[0], router.geometry.coordinates[1]])
       .addTo(map);
 

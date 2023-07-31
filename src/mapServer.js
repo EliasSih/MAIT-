@@ -33,9 +33,9 @@ app.get('/getRouterData', async (req, res) => {
         if (mode === 'ASN') {
             query = `
                 MATCH (r:Router)
-                WITH r.longitude AS longitude, r.latitude AS latitude, r.asn AS asn, COLLECT(r) AS routers
-                WHERE SIZE(routers) > 1
-                RETURN longitude, latitude, [router IN routers | router.ip] AS ips, asn
+                WITH r.longitude AS longitude, r.latitude AS latitude, r.asn AS asn, r.as AS as, COLLECT(r.ip)[0] AS ip
+                WITH longitude, latitude, COLLECT({asn: asn, as: as, ip: ip}) AS asnIps
+                RETURN longitude, latitude, asnIps
             `;
         } else {
             query = `
@@ -52,7 +52,9 @@ app.get('/getRouterData', async (req, res) => {
             features: results.records.map(record => ({
                 type: "Feature",
                 properties: {
-                    ips: record.get('ips')
+                    ips: mode === 'ASN' ? record.get('asnIps').map(asnIp => asnIp.ip) : record.get('ips'),
+                    asns: mode === 'ASN' ? record.get('asnIps').map(asnIp => asnIp.asn) : [],
+                    ass: mode === 'ASN' ? record.get('asnIps').map(asnIp => asnIp.as) : [],
                 },
                 geometry: {
                     type: "Point",
