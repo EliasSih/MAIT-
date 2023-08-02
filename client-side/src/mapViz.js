@@ -13,16 +13,10 @@ let layers = [];
 
 // Function to add a router marker to the map
 function addRouterMarker(router) {
-  // Create marker element
-  // const el = document.createElement('div');
-  // el.className = 'router-marker';
-
   // Add marker to map at router location
   const marker = new mapboxgl.Marker()
       .setLngLat([router.geometry.coordinates[0], router.geometry.coordinates[1]])
       .addTo(map);
-
-  // console.log(router.geometry.coordinates[0]);
 
   // Add the new marker to the markers array
   markers.push(marker);
@@ -35,12 +29,26 @@ function addRouterMarker(router) {
   marker.setPopup(popup);
 
   const ips = router.properties.ips;
-  let popupContent = "<h3>Router IPs:</h3><ul>";
-  for (let ip of ips) {
-    popupContent += `<li>${ip}</li>`;
+  const asns = router.properties.asns;
+  const asnIps = router.properties.asnIps;
+
+  let popupContent;
+  if (router.properties.ass && router.properties.ass.length > 0) { // ASN mode
+    popupContent = "<h5>AS POPS:</h5><ul>";
+    for (let asName of router.properties.ass) {
+      popupContent += `<li>${asName}</li>`;
+    }
+    popupContent += "</ul>";
+  } else if (router.properties.ips && router.properties.ips.length > 0) { // IP mode
+    popupContent = "<h5>Router IPs:</h5><ul>";
+    for (let ip of router.properties.ips) {
+      popupContent += `<li>${ip}</li>`;
+    }
+    popupContent += "</ul>";
   }
-  popupContent += "</ul>";
+
   popup.setHTML(popupContent);
+
 
   marker.getElement().addEventListener('mouseenter', () => {
     marker.togglePopup();
@@ -83,6 +91,7 @@ function addRouterMarker(router) {
     }
   });
 }
+
 
 // Function to add a link to the map
 function addLink(feature) {
