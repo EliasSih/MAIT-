@@ -24,19 +24,27 @@ app.get('/', (req, res) => {
 
 // New route to get router data
 app.get('/getRouterData', async (req, res) => {
-    const session = driver.session({ database: databaseName });
-    const mode = req.query.mode;
+  const session = driver.session({ database: databaseName });
+  const mode = req.query.mode;
+  const zoomLevel = req.query.zoomLevel;
 
-    try {
-        let query;
+  try {
+      let query;
 
-        if (mode === 'ASN') {
-            query = `
-                MATCH (r:Router)
-                WITH r.longitude AS longitude, r.latitude AS latitude, r.asn AS asn, r.as AS as, COLLECT(r.ip)[0] AS ip
-                WITH longitude, latitude, COLLECT({asn: asn, as: as, ip: ip}) AS asnIps
-                RETURN longitude, latitude, asnIps
-            `;
+      if (zoomLevel >= 5.8 && mode === 'IP') {
+          query = `
+              MATCH (rc:RouterClone)
+              WITH rc.longitude AS longitude, rc.latitude AS latitude, rc.asn AS asn, rc.as AS as, rc.ip AS ip
+              WITH longitude, latitude, COLLECT({asn: asn, as: as, ip: ip}) AS asnIps
+              RETURN longitude, latitude, asnIps
+          `;
+      } else if (mode === 'ASN') {
+          query = `
+              MATCH (r:Router)
+              WITH r.longitude AS longitude, r.latitude AS latitude, r.asn AS asn, r.as AS as, COLLECT(r.ip)[0] AS ip
+              WITH longitude, latitude, COLLECT({asn: asn, as: as, ip: ip}) AS asnIps
+              RETURN longitude, latitude, asnIps
+          `;
         } else {
             query = `
                 MATCH (r:Router)
@@ -139,13 +147,23 @@ app.get('/getRouterDetails', async (req, res) => {
 // New route to get link data
 app.get('/getLinkData', async (req, res) => {
     const session = driver.session({ database: databaseName });
+    const zoomLevel = req.query.zoomLevel;
 
-    try {
-        let query = `
-            MATCH (r1:Router)-[:LINKS_TO]->(r2:Router)
-            RETURN r1.identity AS id1, r2.identity AS id2, r1.longitude AS longitude1, r1.latitude AS latitude1, r2.longitude AS longitude2, r2.latitude AS latitude2
-            ORDER BY id1, id2
-        `;
+      try {
+        let query;
+
+        if (zoomLevel >= 5.8) {
+            query = `
+                MATCH (rc1:RouterClone)-[:POINTS_TO]->(rc2:RouterClone)
+                RETURN rc1.identity AS id1, rc2.identity AS id2, rc1.longitude AS longitude1, rc1.latitude AS latitude1, rc2.longitude AS longitude2, rc2.latitude AS latitude2
+                ORDER BY id1, id2
+            `;
+        } else {
+            query = `
+              MATCH (r1:Router)-[:LINKS_TO]->(r2:Router)
+              RETURN r1.identity AS id1, r2.identity AS id2, r1.longitude AS longitude1, r1.latitude AS latitude1, r2.longitude AS longitude2, r2.latitude AS latitude2
+              ORDER BY id1, id2
+        `;}
 
         let results = await session.run(query);
 
