@@ -31,14 +31,17 @@ app.get('/getRouterData', async (req, res) => {
   try {
       let query;
 
-      if (zoomLevel >= 5.8 && mode === 'IP') {
+      if (zoomLevel >= 5.8 && mode === 'ASN') {
+          console.log("Zoom level 5.8 exceeded in ASN mode")
           query = `
               MATCH (rc:RouterClone)
-              WITH rc.longitude AS longitude, rc.latitude AS latitude, rc.asn AS asn, rc.as AS as, rc.ip AS ip
+              WITH rc.longitude AS longitude, rc.latitude AS latitude, rc.asn AS asn, rc.as AS as, COLLECT(rc.ip)[0] AS ip
               WITH longitude, latitude, COLLECT({asn: asn, as: as, ip: ip}) AS asnIps
               RETURN longitude, latitude, asnIps
           `;
+          console.log(query); 
       } else if (mode === 'ASN') {
+          console.log("elif in getRouterData")
           query = `
               MATCH (r:Router)
               WITH r.longitude AS longitude, r.latitude AS latitude, r.asn AS asn, r.as AS as, COLLECT(r.ip)[0] AS ip
@@ -46,6 +49,7 @@ app.get('/getRouterData', async (req, res) => {
               RETURN longitude, latitude, asnIps
           `;
         } else {
+            console.log("else in getRouterData")
             query = `
                 MATCH (r:Router)
                 WITH r.longitude AS longitude, r.latitude AS latitude, COLLECT(r) AS routers
@@ -147,12 +151,13 @@ app.get('/getRouterDetails', async (req, res) => {
 // New route to get link data
 app.get('/getLinkData', async (req, res) => {
     const session = driver.session({ database: databaseName });
+    const mode = req.query.mode;
     const zoomLevel = req.query.zoomLevel;
 
       try {
         let query;
 
-        if (zoomLevel >= 5.8) {
+        if (zoomLevel >= 5.8 && mode === 'ASN') {
             query = `
                 MATCH (rc1:RouterClone)-[:POINTS_TO]->(rc2:RouterClone)
                 RETURN rc1.identity AS id1, rc2.identity AS id2, rc1.longitude AS longitude1, rc1.latitude AS latitude1, rc2.longitude AS longitude2, rc2.latitude AS latitude2
@@ -163,7 +168,7 @@ app.get('/getLinkData', async (req, res) => {
               MATCH (r1:Router)-[:LINKS_TO]->(r2:Router)
               RETURN r1.identity AS id1, r2.identity AS id2, r1.longitude AS longitude1, r1.latitude AS latitude1, r2.longitude AS longitude2, r2.latitude AS latitude2
               ORDER BY id1, id2
-        `;}
+            `;}
 
         let results = await session.run(query);
 
