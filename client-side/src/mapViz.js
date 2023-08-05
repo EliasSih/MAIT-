@@ -10,6 +10,8 @@ var map = new mapboxgl.Map({
 
 let markers = [];
 let layers = [];
+let mode;
+let routerCoordinates = {};
 
 // Function to add a router marker to the map
 function addRouterMarker(router) {
@@ -92,7 +94,6 @@ function addRouterMarker(router) {
   });
 }
 
-
 // Function to add a link to the map
 function addLink(feature) {
     // Create unique id for layer
@@ -124,6 +125,7 @@ function addLink(feature) {
 fetch('/getRouterData')
   .then(response => response.json())
   .then(data => {
+    console.log(data);
     data.features.forEach(addRouterMarker);
   })
   .catch(error => console.error('Error:', error));
@@ -175,9 +177,10 @@ document.querySelector('.switch input').addEventListener('change', function() {
 });
 
 // Fetch router data from the server and add each router to the map
-function fetchAndUpdateMap(mode) {
+function fetchAndUpdateMap(newMode, zoomLevel = map.getZoom()) {
+
+  mode = newMode;
   // First, remove all existing markers and layers from the map
-  // This assumes you're keeping track of these in arrays called `markers` and `layers`
   for (let marker of markers) {
     marker.remove();
   }
@@ -188,14 +191,15 @@ function fetchAndUpdateMap(mode) {
     }
   }
 
-  fetch(`/getRouterData?mode=${mode}`)
+  // Pass zoomLevel as a parameter to the API endpoints
+  fetch(`/getRouterData?mode=${mode}&zoomLevel=${zoomLevel}`)
     .then(response => response.json())
     .then(data => {
-      data.features.forEach(addRouterMarker);
       console.log(data);
+      data.features.forEach(addRouterMarker);
     });
 
-  fetch(`/getLinkData?mode=${mode}`)
+  fetch(`/getLinkData?mode=${mode}&zoomLevel=${zoomLevel}`)
     .then(response => response.json())
     .then(data => {
       data.features.forEach(addLink);
@@ -204,4 +208,43 @@ function fetchAndUpdateMap(mode) {
 
 map.on('load', () => {
     fetchAndUpdateMap('IP');
+});
+
+map.on('zoomend', function() {
+  console.log('Zoom level:', map.getZoom());
+});
+
+map.on('load', () => {
+  const toggleSwitch = document.querySelector('.switch input');
+  if (toggleSwitch.checked) {
+    mode = 'IP';
+    console.log(`Initial Mode: ${mode}`);
+  } else {
+    mode = 'ASN';
+    console.log(`Initial Mode: ${mode}`);
+  }
+});
+
+// Add a variable to track the current zoom level state
+let zoomLevelAboveThreshold = map.getZoom() >= 5.8;
+
+// Update the map whenever the zoom level changes
+map.on('zoomend', function() {
+  let zoomLevel = map.getZoom();
+  console.log('Zoom level:', zoomLevel);
+
+  let isZoomLevelAboveThreshold = zoomLevel >= 5.8;
+
+  // Check if the zoom level state has changed
+  if (isZoomLevelAboveThreshold !== zoomLevelAboveThreshold) {
+    zoomLevelAboveThreshold = isZoomLevelAboveThreshold;
+
+    // If the mode is IP and zoom level is 5.8 or more, update the map to ASN mode
+    if (mode === 'ASN' && zoomLevelAboveThreshold) {
+      fetchAndUpdateMap('ASN', zoomLevel);
+    } else if (mode === 'ASN' && !zoomLevelAboveThreshold) {
+      // If zoom level is less than 5.8, reset mode to 'IP'
+      fetchAndUpdateMap('ASN', zoomLevel);
+    }
+  }
 });

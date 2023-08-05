@@ -48,7 +48,6 @@ const scanPrefix = (prefix) => {
   });
 };
 
-
 // Function to retrieve all prefixes and initiate scan
 async function scanAllPrefixes() {
   const session = driver.session({database: 'neo4j'});
@@ -60,15 +59,16 @@ async function scanAllPrefixes() {
   // Get all prefixes
   const prefixes = result.records.map(record => record.get('prefix'));
 
-  // Scan each prefix
-  let scanPromises = [];
-  for (let prefix of prefixes) {
-    // Collect the promises returned by scanPrefix
-    scanPromises.push(scanPrefix(prefix));
-  }
+  // Scan each prefix in batches
+  let batchSize = 10; // Set your batch size here
 
-  // Wait for all scans to complete before returning
-  return Promise.all(scanPromises);
+  for (let i = 0; i < prefixes.length; i += batchSize) {
+    let batch = prefixes.slice(i, i + batchSize);
+    let scanPromises = batch.map(prefix => scanPrefix(prefix));
+
+    // Wait for this batch to complete before starting the next one
+    await Promise.all(scanPromises);
+  }
 }
 
 scanAllPrefixes().then(() => {
