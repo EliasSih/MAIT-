@@ -62,7 +62,7 @@ label{
     display: none;
 }
 
-#searchInput {
+#filerInput {
     flex-grow: 1;
     margin-right: 10px;
     border: none;
@@ -74,7 +74,7 @@ label{
 }
 
 
-#searchButton {
+#addButton {
     width: 100px;
     background: rgba(5, 82, 181, 0.54);
     border: none;
@@ -82,6 +82,14 @@ label{
     border-radius: 20px;
 }
 
+.applied-filter-item {
+    display: inline-block;
+    margin: 0px 5px 15px;
+    padding: 5px 10px;
+    border-radius: 10px;
+    background-color: rgba(5, 82, 181, 0.54);
+    color: white;
+}
 
 .info-block {
     max-height: 53vh; /* vh stands for viewport height. This caps the div height at 60% of the viewport height. */
@@ -94,7 +102,7 @@ label{
   height: 100vh;
 }
 
-.filter-block, .geoASN-block, .search-Block{
+.filter-block, .geoASN-block, .filerInput-Block{
   background-color: #a8a8a8;
   margin-bottom: 15px;
   padding: 10px 10px;
@@ -108,9 +116,10 @@ label{
 }
 
 .buttons{
-  text-align: right;
+   display: flex;
+   justify-content: space-between
 }
-.apply{
+.apply, .clear{
   border-radius: 10px;
   border: none;
   background: rgba(5, 82, 181, 0.54);

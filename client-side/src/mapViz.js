@@ -137,6 +137,65 @@ fetch('/getLinkData')
     data.features.forEach(addLink);
   });
 
+  // Variables to store the last source and destination ASN
+  let lastSourceASN = null;
+  let lastDestinationASN = null;
+
+  function highlightPath(sourceASN, destinationASN) {
+      const zoomLevel = map.getZoom();
+      let endpoint;
+
+      lastSourceASN = sourceASN; // Update the last source ASN
+      lastDestinationASN = destinationASN; // Update the last destination ASN
+
+      // Determine the endpoint based on zoom level
+      if (zoomLevel > 5.8) {
+          endpoint = `/getPathRouterClone?source=${sourceASN}&destination=${destinationASN}`;
+      } else {
+          endpoint = `/getPathRouter?source=${sourceASN}&destination=${destinationASN}`;
+      }
+
+      fetch(endpoint)
+          .then(response => response.json())
+          .then(data => {
+              // Remove existing path if any
+              if (map.getLayer('highlightedPath')) {
+                  map.removeLayer('highlightedPath');
+                  map.removeSource('highlightedPath');
+              }
+
+              // Add highlighted path to map
+              map.addLayer({
+                  id: 'highlightedPath',
+                  type: 'line',
+                  source: {
+                      type: 'geojson',
+                      data: data
+                  },
+                  layout: {
+                      'line-join': 'round',
+                      'line-cap': 'round'
+                  },
+                  paint: {
+                      'line-color': '#FF0000',
+                      'line-width': 3
+                  }
+              });
+          });
+  }
+
+  // Listen to zoom events
+  map.on('zoomend', function() {
+      const zoomLevel = map.getZoom();
+      if ((zoomLevel <= 5.8 && lastZoomLevel > 5.8) || (zoomLevel > 5.8 && lastZoomLevel <= 5.8)) {
+          // Call the highlight function again if the zoom threshold is crossed
+          highlightPath(lastSourceASN, lastDestinationASN);
+      }
+      lastZoomLevel = zoomLevel;
+  });
+
+  let lastZoomLevel = map.getZoom(); // initialize with the current zoom level
+
 //--------------------------------event listeners-----------------------------------
 
 // show input fields when path filter is clicked
@@ -153,18 +212,6 @@ document.addEventListener('DOMContentLoaded', (event) => {
   });
 });
 
-//show search bar when filters checked
-let checkboxes = document.querySelectorAll("input[name='filters']");
-checkboxes.forEach(checkbox => {
-  checkbox.addEventListener('change', function() {
-    if (this.value == 'path') {
-      document.getElementById('inputDiv').classList.toggle('hidden');
-    } else if (['country', 'region', 'city', 'autonomousSystem'].includes(this.value)) {
-      document.getElementById('searchDiv').classList.toggle('hidden');
-    }
-  });
-});
-
 // toogle switch
 document.querySelector('.switch input').addEventListener('change', function() {
   if (this.checked) {
@@ -175,6 +222,8 @@ document.querySelector('.switch input').addEventListener('change', function() {
     console.log('ASN Mode')
   }
 });
+
+// Filters
 
 // Fetch router data from the server and add each router to the map
 function fetchAndUpdateMap(newMode, zoomLevel = map.getZoom()) {
@@ -247,4 +296,131 @@ map.on('zoomend', function() {
       fetchAndUpdateMap('ASN', zoomLevel);
     }
   }
+
+  // If there's an active path, re-fetch and update it
+  const sourceInput = document.getElementById('sourceInput').value.trim();
+  const destinationInput = document.getElementById('destinationInput').value.trim();
+  if (isValidASN(sourceInput) && isValidASN(destinationInput)) {
+  highlightPath(sourceInput, destinationInput);
+  }
+});
+
+// --------------------------------------filters---------------------------------
+// Create an object to store the latest filter values
+let filterValues = {
+  country: "",
+  region: "",
+  city: "",
+  autonomousSystem: "",
+  path: { source: "", destination: "" }
+};
+
+//show search bar when filters checked
+let checkboxes = document.querySelectorAll("input[name='filters']");
+let currentFilter = null;  // To keep track of the current filter applied
+
+checkboxes.forEach(checkbox => {
+  checkbox.addEventListener('change', function() {
+    checkboxes.forEach(cbox => {
+      // Hide all other input fields
+      if (cbox !== this && cbox.checked) {
+        if (cbox.value === 'path') {
+          document.getElementById('inputDiv').classList.add('hidden');
+        } else {
+          document.getElementById('filterInputDiv').classList.add('hidden');
+        }
+        cbox.checked = false; // uncheck all other checkboxes
+      }
+    });
+
+    if (this.checked && ['country', 'region', 'city', 'autonomousSystem'].includes(this.value)) {
+      document.getElementById('filterInputDiv').classList.remove('hidden');
+      currentFilter = this.value;
+    } else if (this.checked && this.value == 'path') {
+      document.getElementById('inputDiv').classList.remove('hidden');
+      currentFilter = this.value;
+    } else {
+      currentFilter = null;
+    }
+  });
+});
+
+function isValidASN(asn) {
+  return /^ASN:?\d+$|^asn:?\d+$|^\d+$/.test(asn);
+}
+
+// Hide the 'Clear' button by default
+document.querySelector('.clear').style.display = 'none';
+
+document.querySelector(".apply").addEventListener('click', function() {
+  if (currentFilter) {
+    if (currentFilter == 'path') {
+      const sourceInput = document.getElementById('sourceInput').value.trim();
+      const destinationInput = document.getElementById('destinationInput').value.trim();
+
+      if (isValidASN(sourceInput) && isValidASN(destinationInput)) {
+        // Store the values in filterValues
+        filterValues.path.source = sourceInput;
+        filterValues.path.destination = destinationInput;
+
+        const existingDiv = document.querySelector('.applied-filter-item[data-filter="path"]');
+        if (existingDiv) {
+          existingDiv.textContent = currentFilter + `: Source(${sourceInput}) - Destination(${destinationInput})`;
+        } else {
+          const div = document.createElement('div');
+          div.className = 'applied-filter-item';
+          div.setAttribute('data-filter', 'path');
+          div.textContent = currentFilter + `: Source(${sourceInput}) - Destination(${destinationInput})`;
+          document.getElementById('appliedFilters').appendChild(div);
+        }
+
+        document.getElementById('sourceInput').value = "";
+        document.getElementById('destinationInput').value = "";
+
+        highlightPath(sourceInput, destinationInput);
+      } else {
+        alert('Please use the appropriate format for ASN (e.g., ASN123, asn123, ASN:123, asn:123, 123)');
+      }
+    } else {
+      let value = document.getElementById('filerInput').value;
+
+      if (value) {
+        // Store the value in filterValues
+        filterValues[currentFilter] = value;
+
+        const existingDiv = document.querySelector(`.applied-filter-item[data-filter="${currentFilter}"]`);
+        if (existingDiv) {
+          existingDiv.textContent = currentFilter + ": " + value;
+        } else {
+          const div = document.createElement('div');
+          div.className = 'applied-filter-item';
+          div.setAttribute('data-filter', currentFilter);
+          div.textContent = currentFilter + ": " + value;
+          document.getElementById('appliedFilters').appendChild(div);
+        }
+
+        document.getElementById('filerInput').value = "";
+      }
+    }
+  }
+  console.log("----------------fileterValues-----------------\n",filterValues);
+  // After applying a filter, show the 'Clear' button
+  document.querySelector('.clear').style.display = 'block';
+});
+
+document.querySelector(".clear").addEventListener('click', function() {
+    // Clear the applied filters div
+    document.getElementById('appliedFilters').innerHTML = '';
+
+    // Reset the filterValues object to its default state
+    filterValues = {
+      country: "",
+      region: "",
+      city: "",
+      autonomousSystem: "",
+      path: { source: "", destination: "" }
+    };
+
+    // Hide the 'Clear' button
+    document.querySelector('.clear').style.display = 'none';
 });
