@@ -39,7 +39,7 @@ app.get('/getRouterData', async (req, res) => {
               WITH longitude, latitude, COLLECT({asn: asn, as: as, ip: ip}) AS asnIps
               RETURN longitude, latitude, asnIps
           `;
-          console.log(query); 
+          console.log(query);
       } else if (mode === 'ASN') {
           console.log("elif in getRouterData")
           query = `
@@ -74,8 +74,10 @@ app.get('/getRouterData', async (req, res) => {
                 }
             }))
         };
-
         res.json(geojson);
+
+
+
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'An error occurred.' });
@@ -194,6 +196,107 @@ app.get('/getLinkData', async (req, res) => {
         session.close();
     }
 });
+
+// Endpoint to get the path between two ASNs using RouterClone (zoom level > 5.8)
+app.get('/getPathRouterClone', async (req, res) => {
+    await getPath(req, res, true);
+});
+
+// Endpoint to get the path between two ASNs using Router (zoom level <= 5.8)
+app.get('/getPathRouter', async (req, res) => {
+    await getPath(req, res, false);
+});
+
+// Common function to handle the path retrieval logic
+async function getPath(req, res, useRouterClone) {
+    const session = driver.session({ database: databaseName });
+    const srcASN = req.query.source;
+    const destASN = req.query.destination;
+
+    // Validate the source and destination ASN format
+    const regex = /^(ASN|asn)?[:]?(\d+)$/;
+
+    const srcMatch = regex.exec(srcASN);
+    const destMatch = regex.exec(destASN);
+
+    if (!srcMatch || !destMatch) {
+        return res.status(400).json({ message: 'Please enter a valid ASN format.' });
+    }
+
+    const srcAsnNumber = srcMatch[2];
+    const destAsnNumber = destMatch[2];
+
+    try {
+        let query;
+
+        if (useRouterClone) {
+            query = `
+                MATCH path = (src:RouterClone {asn: $srcAsnNumber})-[:POINTS_TO*]-(dest:RouterClone {asn: $destAsnNumber})
+                RETURN path
+            `;
+        } else {
+            query = `
+                MATCH path = (src:Router {asn: $srcAsnNumber})-[:LINKS_TO*]-(dest:Router {asn: $destAsnNumber})
+                RETURN path
+            `;
+        }
+
+        // Execute the query
+        let results = await session.run(query, { srcAsnNumber: parseInt(srcAsnNumber, 10), destAsnNumber: parseInt(destAsnNumber, 10)});
+
+        // Convert the result to GeoJSON or any other format needed on the client-side
+        let geojson = {
+            type: "FeatureCollection",
+            features: []
+        };
+
+        results.records.forEach(record => {
+            const path = record.get('path');
+
+            // Iterate over each segment in the path
+            for (let segment of path.segments) {
+
+                // console.log("segment:\n")
+                // console.log(segment);
+
+                const startNode = segment.start;
+                // console.log("segmentStart:"+startNode.properties.longitude);
+                const endNode = segment.end;
+                // console.log("segmentEnd:"+ endNode.properties.longitude);
+
+                // Check if startNode and endNode coordinates are identical
+                if (startNode.properties.longitude === endNode.properties.longitude &&
+                    startNode.properties.latitude === endNode.properties.latitude) {
+                    // Skip this segment or handle it differently, if desired
+                    continue; // This will skip the current iteration of the loop and move to the next segment
+                }
+
+
+                geojson.features.push({
+                    type: "Feature",
+                    properties: {},
+                    geometry: {
+                        type: "LineString",
+                        coordinates: [
+                            [startNode.properties.longitude, startNode.properties.latitude],
+                            [endNode.properties.longitude, endNode.properties.latitude]
+                        ]
+                    }
+                });
+            }
+        });
+
+        console.log("-----------------------geojson--------------------------------\n" + geojson.features[0].geometry.coordinates);
+        console.log(JSON.stringify(geojson, null, 2));
+
+        res.json(geojson);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'An error occurred while processing the request.' });
+    } finally {
+        session.close();
+    }
+}
 
 app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
