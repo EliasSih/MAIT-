@@ -74,3 +74,6 @@ async function jitterLocations() {
 }
 
 jitterLocations();
+
+// TODO
+// add condittion to not jitter nodes with latitude: 0 && longitude: 0

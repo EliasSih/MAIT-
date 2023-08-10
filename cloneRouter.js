@@ -35,3 +35,6 @@ async function cloneGraph() {
 }
 
 cloneGraph();
+// TODO
+// remove self relationships
+// remove recurring relationships 

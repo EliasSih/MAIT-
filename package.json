@@ -4,7 +4,10 @@
   "description": "project -> Mapping the african internet topology ",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "client": "cd client && npm start",
+    "server": "nodemon src/server.js",
+    "dev": "concurrently --kill-others \"npm run server\" \"npm run client\""
   },
   "repository": {
     "type": "git",
@@ -33,12 +36,19 @@
   "homepage": "https://github.com/EliasSih/MAIT-#readme",
   "dependencies": {
     "@maxmind/geoip2-node": "^4.0.0",
+    "@turf/turf": "^6.5.0",
     "axios": "^1.4.0",
+    "concurrently": "^8.2.0",
+    "cors": "^2.8.5",
     "csv-parse": "^5.4.0",
+    "d3": "^7.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
     "ip": "^1.1.8",
     "ip2location-nodejs": "^9.5.0",
     "ip6": "^0.2.10",
-    "neo4j-driver": "^5.9.1",
-    "node-nmap": "^4.0.0"
+    "neo4j-driver": "^5.10.0",
+    "node-nmap": "^4.0.0",
+    "topojson-client": "^3.1.0"
   }
 }

@@ -256,7 +256,7 @@ function fetchAndUpdateMap(newMode, zoomLevel = map.getZoom()) {
 }
 
 map.on('load', () => {
-    fetchAndUpdateMap('IP');
+    fetchAndUpdateMap('ASN');
 });
 
 map.on('zoomend', function() {
@@ -404,6 +404,25 @@ document.querySelector(".apply").addEventListener('click', function() {
     }
   }
   console.log("----------------fileterValues-----------------\n",filterValues);
+  // Post the filterValues to the server after they've been updated.
+  fetch('/updateFilterValues', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ filterValues: filterValues })
+  })
+  .then(response => response.json())
+  .then(data => {
+      if (data.message) {
+          console.log(data.message);
+      } else {
+          console.error("Failed to update filter values.");
+      }
+  })
+  .catch(error => {
+      console.error("Error:", error);
+  });
   // After applying a filter, show the 'Clear' button
   document.querySelector('.clear').style.display = 'block';
 });
@@ -420,6 +439,32 @@ document.querySelector(".clear").addEventListener('click', function() {
       autonomousSystem: "",
       path: { source: "", destination: "" }
     };
+
+    // Post the reset filterValues to the server to clear them there as well
+    fetch('/updateFilterValues', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ filterValues: filterValues })
+    })
+    .then(response => {
+        if(response.ok) {
+            return response.json();
+        }
+        throw new Error('Network response was not ok.');
+    })
+    .then(data => {
+        if (data.success) {
+            console.log(data.message);  // Log the success message from the server
+            fetchAndUpdateMap(newMode);  // Assuming newMode is available in this context.
+        } else {
+            console.error(data.message || 'There was a problem updating filter values.');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
 
     // Hide the 'Clear' button
     document.querySelector('.clear').style.display = 'none';

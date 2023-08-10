@@ -22,42 +22,93 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'client-side', 'public', 'index.html'));
 });
 
+// filer values
+let currentFilterValues = {
+  country: "",
+  region: "",
+  city: "",
+  autonomousSystem: "",
+  path: { source: "", destination: "" }
+};
+
+app.post('/updateFilterValues', express.json(), (req, res) => {
+  const { filterValues } = req.body;
+
+  // Update global filterValues with the provided values
+  if (filterValues) {
+    currentFilterValues = { ...currentFilterValues, ...filterValues };
+    console.log("------------filerValues(server-side)---------\n", currentFilterValues);
+    // Once updated, send a confirmation response
+    return res.json({
+      success: true,
+      message: "Filter values updated successfully."
+    });
+  }
+
+  // If filterValues doesn't exist, send an error response
+  return res.status(400).json({
+    success: false,
+    message: "No filter values provided."
+  });
+});
+
 // New route to get router data
 app.get('/getRouterData', async (req, res) => {
-  const session = driver.session({ database: databaseName });
-  const mode = req.query.mode;
-  const zoomLevel = req.query.zoomLevel;
+    const session = driver.session({ database: databaseName });
+    const mode = req.query.mode;
+    const zoomLevel = req.query.zoomLevel;
 
-  try {
-      let query;
+    try {
+        let baseQuery, filterClause = [];
 
-      if (zoomLevel >= 5.8 && mode === 'ASN') {
-          console.log("Zoom level 5.8 exceeded in ASN mode")
-          query = `
-              MATCH (rc:RouterClone)
-              WITH rc.longitude AS longitude, rc.latitude AS latitude, rc.asn AS asn, rc.as AS as, COLLECT(rc.ip)[0] AS ip
-              WITH longitude, latitude, COLLECT({asn: asn, as: as, ip: ip}) AS asnIps
-              RETURN longitude, latitude, asnIps
-          `;
-          console.log(query);
-      } else if (mode === 'ASN') {
-          console.log("elif in getRouterData")
-          query = `
-              MATCH (r:Router)
-              WITH r.longitude AS longitude, r.latitude AS latitude, r.asn AS asn, r.as AS as, COLLECT(r.ip)[0] AS ip
-              WITH longitude, latitude, COLLECT({asn: asn, as: as, ip: ip}) AS asnIps
-              RETURN longitude, latitude, asnIps
-          `;
-        } else {
-            console.log("else in getRouterData")
-            query = `
+        // Apply filters based on the currentFilterValues
+        if (currentFilterValues.country) {
+            filterClause.push(`r.countryName = '${currentFilterValues.country}'`);
+        }
+
+        if (currentFilterValues.region) {
+            filterClause.push(`r.region = '${currentFilterValues.region}'`);
+        }
+
+        if (currentFilterValues.city) {
+            filterClause.push(`r.cityName = '${currentFilterValues.city}'`);
+        }
+
+        if (currentFilterValues.autonomousSystem) {
+            filterClause.push(`r.as = '${currentFilterValues.autonomousSystem}'`);
+        }
+
+        const filters = filterClause.length > 0 ? 'WHERE ' + filterClause.join(' AND ') : '';
+
+        if (zoomLevel >= 5.8 && mode === 'ASN') {
+            console.log("Zoom level 5.8 exceeded in ASN mode");
+            baseQuery = `
+                MATCH (rc:RouterClone)
+                ${filters.replace(/r\./g, "rc.")}
+                WITH rc.longitude AS longitude, rc.latitude AS latitude, rc.asn AS asn, rc.as AS as, COLLECT(rc.ip)[0] AS ip
+                WITH longitude, latitude, COLLECT({asn: asn, as: as, ip: ip}) AS asnIps
+                RETURN longitude, latitude, asnIps
+            `;
+        } else if (mode === 'ASN') {
+            console.log("elif in getRouterData");
+            baseQuery = `
                 MATCH (r:Router)
+                ${filters}
+                WITH r.longitude AS longitude, r.latitude AS latitude, r.asn AS asn, r.as AS as, COLLECT(r.ip)[0] AS ip
+                WITH longitude, latitude, COLLECT({asn: asn, as: as, ip: ip}) AS asnIps
+                RETURN longitude, latitude, asnIps
+            `;
+        } else {
+            console.log("else in getRouterData");
+            baseQuery = `
+                MATCH (r:Router)
+                ${filters}
                 WITH r.longitude AS longitude, r.latitude AS latitude, COLLECT(r) AS routers
                 RETURN longitude, latitude, [router IN routers | router.ip] AS ips
             `;
         }
 
-        let results = await session.run(query);
+        let results = await session.run(baseQuery);
 
         let geojson = {
             type: "FeatureCollection",
@@ -74,10 +125,8 @@ app.get('/getRouterData', async (req, res) => {
                 }
             }))
         };
+
         res.json(geojson);
-
-
-
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'An error occurred.' });

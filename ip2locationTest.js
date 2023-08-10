@@ -4,7 +4,7 @@ const {IP2Location} = require("ip2location-nodejs");
 
 let ip2location = new IP2Location();
 
-ip2location.open("Database/IP2LOCATION-LITE-DB11.BIN/IP2LOCATION-LITE-DB11.BIN");
+// ip2location.open("Database/IP2LOCATION-LITE-DB11.BIN/IP2LOCATION-LITE-DB11.BIN");
 
 function ipToNumber(ip) {
     let parts = ip.split('.');
@@ -19,7 +19,7 @@ function ipToNumber(ip) {
 function getASN(ipAddress) {
   return new Promise((resolve, reject) => {
     let ipNumber = ipToNumber(ipAddress);
-    fs.createReadStream('Database/IP2LOCATION-LITE-ASN.CSV/IP2LOCATION-LITE-ASN.CSV')
+    fs.createReadStream('GeoDatabase-ip2location/IP2LOCATION-LITE-ASN.CSV/IP2LOCATION-LITE-ASN.CSV')
     .pipe(csv({ headers: false }))
     .on('data', (row) => {
       let start = Number(row[0]);
@@ -37,6 +37,7 @@ function getASN(ipAddress) {
 }
 
 async function getGeoInfo(ipAddress) {
+  ip2location.open("GeoDatabase-ip2location/IP2LOCATION-LITE-DB11.BIN/IP2LOCATION-LITE-DB11.BIN");
   let result = ip2location.getAll(ipAddress);
   let asnInfo;
   try {
@@ -63,7 +64,7 @@ async function getGeoInfo(ipAddress) {
 
 module.exports = { getGeoInfo };
 
-let ipAddress = '196.60.96.33';
-getGeoInfo(ipAddress);
+// let ipAddress = '192.168.251.251';
+// getGeoInfo(ipAddress);
 
 ip2location.close();
