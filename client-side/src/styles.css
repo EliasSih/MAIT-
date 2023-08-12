@@ -135,7 +135,7 @@ label{
 }
 
 /* The switch - the box around the slider */
-.switch {
+.switch, .switch-hglt {
   position: relative;
   display: inline-block;
   width: 65px;
@@ -143,10 +143,15 @@ label{
 }
 
 /* Hide default HTML checkbox */
-.switch input {
+.switch input, .switch-hglt input{
   opacity: 0;
   width: 0;
   height: 0;
+}
+
+.switch-div {
+    display: flex;
+    justify-content: space-between;
 }
 
 /* The slider */

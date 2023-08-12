@@ -94,6 +94,86 @@ function addRouterMarker(router) {
   });
 }
 
+// Function to highlight a router marker on the map
+function highlightRouterMarker(router) {
+  console.log("Router Highlighter works")
+  // Add red colored marker to map at router location
+  const marker = new mapboxgl.Marker({ color: 'red' })
+      .setLngLat([router.geometry.coordinates[0], router.geometry.coordinates[1]])
+      .addTo(map);
+
+  // Add the new marker to the markers array
+  markers.push(marker);
+
+  var popup = new mapboxgl.Popup({
+    offset: 25,
+    closeOnClick: false
+  });
+
+  marker.setPopup(popup);
+
+  const ips = router.properties.ips;
+
+  let popupContent;
+  if (router.properties.ass && router.properties.ass.length > 0) { // ASN mode
+    popupContent = "<h5>AS POPS:</h5><ul>";
+    for (let asName of router.properties.ass) {
+      popupContent += `<li>${asName}</li>`;
+    }
+    popupContent += "</ul>";
+  } else if (router.properties.ips && router.properties.ips.length > 0) { // IP mode
+    popupContent = "<h5>Router IPs:</h5><ul>";
+    for (let ip of router.properties.ips) {
+      popupContent += `<li>${ip}</li>`;
+    }
+    popupContent += "</ul>";
+  }
+
+  popup.setHTML(popupContent);
+
+  marker.getElement().addEventListener('mouseenter', () => {
+    marker.togglePopup();
+  });
+
+  marker.getElement().addEventListener('mouseleave', () => {
+    marker.togglePopup();
+  });
+
+  marker.getElement().addEventListener('click', () => {
+    var infoDiv = document.querySelector('.info-block');
+    var geoASNBlock = document.getElementById('geoASNBlock'); // Get the geoASNBlock div
+
+    // Clear out the info block
+    infoDiv.innerHTML = '';
+
+    // Show the geoASNBlock div
+    geoASNBlock.style.display = 'block';
+
+    for (let ip of ips) {
+      fetch(`/getRouterDetails?ip=${ip}`)
+        .then(response => response.json())
+        .then(info => {
+          let routerHTML = `
+            <p><strong>ID:</strong> ${info.id}</p>
+            <p><strong>AS:</strong> ${info.as}</p>
+            <p><strong>ASN:</strong> ${info.asn}</p>
+            <p><strong>City:</strong> ${info.cityName}</p>
+            <p><strong>Country Code:</strong> ${info.countryCode}</p>
+            <p><strong>Country Name:</strong> ${info.countryName}</p>
+            <p><strong>IP:</strong> ${info.ip}</p>
+            <p><strong>Latitude:</strong> ${info.latitude}</p>
+            <p><strong>Longitude:</strong> ${info.longitude}</p>
+            <p><strong>Region:</strong> ${info.region}</p>
+            <p><strong>Zip Code:</strong> ${info.zipCode}</p>
+            <hr/>
+          `;
+          infoDiv.innerHTML += routerHTML;
+        });
+    }
+  });
+}
+
+
 // Function to add a link to the map
 function addLink(feature) {
     // Create unique id for layer
@@ -226,17 +306,19 @@ document.querySelector('.switch input').addEventListener('change', function() {
 // Filters
 
 // Fetch router data from the server and add each router to the map
-function fetchAndUpdateMap(newMode, zoomLevel = map.getZoom()) {
-
+function fetchAndUpdateMap(newMode, zoomLevel = map.getZoom(), hglt = false) {
   mode = newMode;
-  // First, remove all existing markers and layers from the map
-  for (let marker of markers) {
-    marker.remove();
-  }
-  for (let layer of layers) {
-    if (map.getLayer(layer)) {
-      map.removeLayer(layer);
-      map.removeSource(layer);
+
+  if (!hglt) {
+    // If hglt is false, remove all existing markers and layers from the map
+    for (let marker of markers) {
+      marker.remove();
+    }
+    for (let layer of layers) {
+      if (map.getLayer(layer)) {
+        map.removeLayer(layer);
+        map.removeSource(layer);
+      }
     }
   }
 
@@ -245,7 +327,9 @@ function fetchAndUpdateMap(newMode, zoomLevel = map.getZoom()) {
     .then(response => response.json())
     .then(data => {
       console.log(data);
-      data.features.forEach(addRouterMarker);
+      // If hglt is true, use highlightRouterMarker, otherwise use addRouterMarker
+      const markerFunction = hglt ? highlightRouterMarker : addRouterMarker;
+      data.features.forEach(markerFunction);
     });
 
   fetch(`/getLinkData?mode=${mode}&zoomLevel=${zoomLevel}`)
@@ -457,7 +541,17 @@ document.querySelector(".clear").addEventListener('click', function() {
     .then(data => {
         if (data.success) {
             console.log(data.message);  // Log the success message from the server
-            fetchAndUpdateMap(newMode);  // Assuming newMode is available in this context.
+
+            // Check the state of the switch-hglt
+            const isHgltChecked = document.querySelector('.switch-hglt input').checked;
+
+            // Depending on whether the switch is checked or not, call fetchAndUpdateMap with different parameters
+            if (isHgltChecked) {
+                console.log("state of the hglt switch is known" + isHgltChecked); 
+                fetchAndUpdateMap(newMode, map.getZoom(), true);
+            } else {
+                fetchAndUpdateMap(newMode);
+            }
         } else {
             console.error(data.message || 'There was a problem updating filter values.');
         }
