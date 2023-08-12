@@ -43,14 +43,24 @@
                   Path
               </label>
               <hr/>
-              <!-- Rounded switch -->
-              <label class="switch">
-                <input type="checkbox">
-                <span class="slider round">
-                  <span class="label-on">ASN</span>
-                  <span class="label-off">IP</span>
-                </span>
-              </label>
+              <div class="switch-div">
+                <!-- IP/ASN mode switch -->
+                <label class="switch">
+                  <input type="checkbox">
+                  <span class="slider round">
+                    <span class="label-on">ASN</span>
+                    <span class="label-off">IP</span>
+                  </span>
+                </label>
+                <!-- Hightlight Pops switch -->
+                <label class="switch-hglt">
+                  <input type="checkbox">
+                  <span class="slider round">
+                    <span class="label-on">H-OFF</span>
+                    <span class="label-off">HLT</span>
+                  </span>
+                </label>
+              </div>
             </div>
             <div id="inputDiv">
               <input type="text" class="src" id="sourceInput" placeholder="Source">
