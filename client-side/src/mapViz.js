@@ -195,7 +195,7 @@ function addLink(feature) {
             'line-cap': 'round'
         },
         paint: {
-            'line-color': '#888',
+            'line-color': '#000000',
             'line-width': 1
         }
     });
@@ -221,48 +221,48 @@ fetch('/getLinkData')
   let lastSourceASN = null;
   let lastDestinationASN = null;
 
-  function highlightPath(sourceASN, destinationASN) {
-      const zoomLevel = map.getZoom();
-      let endpoint;
+function highlightPath(sourceASN, destinationASN) {
+    const zoomLevel = map.getZoom();
+    let endpoint;
 
-      lastSourceASN = sourceASN; // Update the last source ASN
-      lastDestinationASN = destinationASN; // Update the last destination ASN
+    lastSourceASN = sourceASN; // Update the last source ASN
+    lastDestinationASN = destinationASN; // Update the last destination ASN
 
-      // Determine the endpoint based on zoom level
-      if (zoomLevel > 5.8) {
-          endpoint = `/getPathRouterClone?source=${sourceASN}&destination=${destinationASN}`;
-      } else {
-          endpoint = `/getPathRouter?source=${sourceASN}&destination=${destinationASN}`;
-      }
+    // Determine the endpoint based on zoom level
+    if (zoomLevel > 5.8) {
+        endpoint = `/getPathRouterClone?source=${sourceASN}&destination=${destinationASN}`;
+    } else {
+        endpoint = `/getPathRouter?source=${sourceASN}&destination=${destinationASN}`;
+    }
 
-      fetch(endpoint)
-          .then(response => response.json())
-          .then(data => {
-              // Remove existing path if any
-              if (map.getLayer('highlightedPath')) {
-                  map.removeLayer('highlightedPath');
-                  map.removeSource('highlightedPath');
-              }
+    fetch(endpoint)
+        .then(response => response.json())
+        .then(data => {
+            // Remove existing path if any
+            if (map.getLayer('highlightedPath')) {
+                map.removeLayer('highlightedPath');
+                map.removeSource('highlightedPath');
+            }
 
-              // Add highlighted path to map
-              map.addLayer({
-                  id: 'highlightedPath',
-                  type: 'line',
-                  source: {
-                      type: 'geojson',
-                      data: data
-                  },
-                  layout: {
-                      'line-join': 'round',
-                      'line-cap': 'round'
-                  },
-                  paint: {
-                      'line-color': '#FF0000',
-                      'line-width': 3
-                  }
-              });
-          });
-  }
+            // Add highlighted path to map
+            map.addLayer({
+                id: 'highlightedPath',
+                type: 'line',
+                source: {
+                    type: 'geojson',
+                    data: data
+                },
+                layout: {
+                    'line-join': 'round',
+                    'line-cap': 'round'
+                },
+                paint: {
+                    'line-color': '#FF0000',
+                    'line-width': 3
+                }
+            });
+        });
+}
 
   // Listen to zoom events
   map.on('zoomend', function() {
@@ -374,10 +374,22 @@ map.on('zoomend', function() {
 
     // If the mode is IP and zoom level is 5.8 or more, update the map to ASN mode
     if (mode === 'ASN' && zoomLevelAboveThreshold) {
-      fetchAndUpdateMap('ASN', zoomLevel);
+      if(document.querySelector('.switch-hglt input').checked){
+        // fetchAndUpdateMap('ASN', zoomLevel);
+        fetchAndUpdateMap("ASN", map.getZoom(), true);
+      }
+      else{
+        fetchAndUpdateMap('ASN', zoomLevel);
+      }
     } else if (mode === 'ASN' && !zoomLevelAboveThreshold) {
       // If zoom level is less than 5.8, reset mode to 'IP'
-      fetchAndUpdateMap('ASN', zoomLevel);
+      if(document.querySelector('.switch-hglt input').checked){
+        // fetchAndUpdateMap('ASN', zoomLevel);
+        fetchAndUpdateMap("ASN", map.getZoom(), true);
+      }
+      else{
+        fetchAndUpdateMap('ASN', zoomLevel);
+      }
     }
   }
 
@@ -488,7 +500,7 @@ document.querySelector(".apply").addEventListener('click', function() {
     }
   }
   console.log("----------------fileterValues-----------------\n",filterValues);
-  // Post the filterValues to the server after they've been updated.
+  // Post the reset filterValues to the server to clear them there as well
   fetch('/updateFilterValues', {
     method: 'POST',
     headers: {
@@ -496,16 +508,34 @@ document.querySelector(".apply").addEventListener('click', function() {
     },
     body: JSON.stringify({ filterValues: filterValues })
   })
-  .then(response => response.json())
+  .then(response => {
+      if(response.ok) {
+          return response.json();
+      }
+      throw new Error('Network response was not ok.');
+  })
   .then(data => {
-      if (data.message) {
-          console.log(data.message);
+      if (data.success) {
+          console.log(data.message);  // Log the success message from the server
+
+          // Check the state of the switch-hglt
+          const isHgltChecked = document.querySelector('.switch-hglt input').checked;
+
+          // Depending on whether the switch is checked or not, call fetchAndUpdateMap with different parameters
+          if (isHgltChecked) {
+              console.log("state of the hglt switch is known" + isHgltChecked);
+              // fetchAndUpdateMap('ASN', zoomLevel);
+              fetchAndUpdateMap("ASN", map.getZoom(), true);
+          } else {
+              console.log("normal fetchAndUPdate" + isHgltChecked);
+              fetchAndUpdateMap("ASN");
+          }
       } else {
-          console.error("Failed to update filter values.");
+          console.error(data.message || 'There was a problem updating filter values.');
       }
   })
   .catch(error => {
-      console.error("Error:", error);
+      console.error('Error:', error);
   });
   // After applying a filter, show the 'Clear' button
   document.querySelector('.clear').style.display = 'block';
@@ -525,39 +555,23 @@ document.querySelector(".clear").addEventListener('click', function() {
     };
 
     // Post the reset filterValues to the server to clear them there as well
-    fetch('/updateFilterValues', {
+    fetch('http://localhost:3000/updateFilterValues', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ filterValues: filterValues })
     })
-    .then(response => {
-        if(response.ok) {
-            return response.json();
-        }
-        throw new Error('Network response was not ok.');
-    })
+    .then(response => response.json())
     .then(data => {
-        if (data.success) {
-            console.log(data.message);  // Log the success message from the server
-
-            // Check the state of the switch-hglt
-            const isHgltChecked = document.querySelector('.switch-hglt input').checked;
-
-            // Depending on whether the switch is checked or not, call fetchAndUpdateMap with different parameters
-            if (isHgltChecked) {
-                console.log("state of the hglt switch is known" + isHgltChecked); 
-                fetchAndUpdateMap(newMode, map.getZoom(), true);
-            } else {
-                fetchAndUpdateMap(newMode);
-            }
+        if (data.message) {
+            console.log(data.message);
         } else {
-            console.error(data.message || 'There was a problem updating filter values.');
+            console.error("Failed to reset filter values.");
         }
     })
     .catch(error => {
-        console.error('Error:', error);
+        console.error("Error:", error);
     });
 
     // Hide the 'Clear' button
