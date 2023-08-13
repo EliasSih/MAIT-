@@ -5,8 +5,16 @@ const neo4j = require('neo4j-driver');
 const app = express();
 const port = process.env.PORT || 5000;
 
-// Connect to Neo4j
-const driver = neo4j.driver("bolt://localhost:7687", neo4j.auth.basic("neo4j", "eli@sol2"));
+// Connect to Neo4j - previosly used with neo4j community
+// const driver = neo4j.driver("bolt://localhost:7687", neo4j.auth.basic("neo4j", "eli@sol2"));
+
+// Connection details from AuraDB console
+const auraURI = "neo4j+s://bb7cdba7.databases.neo4j.io";  // Your provided connection URI
+const auraUsername = "neo4j";
+const auraPassword = "eli@sol2";
+
+// Connect to Neo4j AuraDB
+const driver = neo4j.driver(auraURI, neo4j.auth.basic(auraUsername, auraPassword));
 
 // Specify your database name here
 const databaseName = 'neo4j';
