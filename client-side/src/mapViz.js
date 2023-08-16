@@ -220,6 +220,14 @@ fetch('/getLinkData')
   // Variables to store the last source and destination ASN
   let lastSourceASN = null;
   let lastDestinationASN = null;
+  const colors = ["#FF0000", "#00FF00", "#0000FF", "#FFFF00", "#FF00FF", "#00FFFF"]; // Add more high contrast colors as needed
+  let currentColorIndex = 0;
+
+  function getNextColor() {
+      const color = colors[currentColorIndex];
+      currentColorIndex = (currentColorIndex + 1) % colors.length; // loop back to the first color if we run out
+      return color;
+  }
 
 function highlightPath(sourceASN, destinationASN) {
     const zoomLevel = map.getZoom();
@@ -238,30 +246,31 @@ function highlightPath(sourceASN, destinationASN) {
     fetch(endpoint)
         .then(response => response.json())
         .then(data => {
-            // Remove existing path if any
-            if (map.getLayer('highlightedPath')) {
-                map.removeLayer('highlightedPath');
-                map.removeSource('highlightedPath');
-            }
+            if (data.features && Array.isArray(data.features)) {
+                data.features.forEach(feature => {
+                    const layerId = `highlightedPath-${feature.properties.pathId}`; // Use pathId to generate unique ID
 
-            // Add highlighted path to map
-            map.addLayer({
-                id: 'highlightedPath',
-                type: 'line',
-                source: {
-                    type: 'geojson',
-                    data: data
-                },
-                layout: {
-                    'line-join': 'round',
-                    'line-cap': 'round'
-                },
-                paint: {
-                    'line-color': '#FF0000',
-                    'line-width': 3
-                }
-            });
+                    // Add each path with a different color
+                    map.addLayer({
+                        id: layerId,
+                        type: 'line',
+                        source: {
+                            type: 'geojson',
+                            data: feature
+                        },
+                        layout: {
+                            'line-join': 'round',
+                            'line-cap': 'round'
+                        },
+                        paint: {
+                            'line-color': getNextColor(),
+                            'line-width': 3
+                        }
+                    });
+                });
+            }
         });
+
 }
 
   // Listen to zoom events

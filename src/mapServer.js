@@ -5,8 +5,16 @@ const neo4j = require('neo4j-driver');
 const app = express();
 const port = process.env.PORT || 5000;
 
-// Connect to Neo4j
+// Connect to Neo4j - previosly used with neo4j community
 const driver = neo4j.driver("bolt://localhost:7687", neo4j.auth.basic("neo4j", "eli@sol2"));
+
+// // Connection details from AuraDB console
+// const auraURI = "neo4j+s://bb7cdba7.databases.neo4j.io";  // Your provided connection URI
+// const auraUsername = "neo4j";
+// const auraPassword = "eli@sol2";
+//
+// // Connect to Neo4j AuraDB
+// const driver = neo4j.driver(auraURI, neo4j.auth.basic(auraUsername, auraPassword));
 
 // Specify your database name here
 const databaseName = 'neo4j';
@@ -299,40 +307,33 @@ async function getPath(req, res, useRouterClone) {
             features: []
         };
 
-        results.records.forEach(record => {
+        results.records.forEach((record, index) => {
             const path = record.get('path');
+            let coordinates = [];
 
             // Iterate over each segment in the path
             for (let segment of path.segments) {
-
-                // console.log("segment:\n")
-                // console.log(segment);
-
                 const startNode = segment.start;
-                // console.log("segmentStart:"+startNode.properties.longitude);
                 const endNode = segment.end;
-                // console.log("segmentEnd:"+ endNode.properties.longitude);
 
-                // Check if startNode and endNode coordinates are identical
                 if (startNode.properties.longitude === endNode.properties.longitude &&
                     startNode.properties.latitude === endNode.properties.latitude) {
-                    // Skip this segment or handle it differently, if desired
-                    continue; // This will skip the current iteration of the loop and move to the next segment
+                    continue;
                 }
 
-
-                geojson.features.push({
-                    type: "Feature",
-                    properties: {},
-                    geometry: {
-                        type: "LineString",
-                        coordinates: [
-                            [startNode.properties.longitude, startNode.properties.latitude],
-                            [endNode.properties.longitude, endNode.properties.latitude]
-                        ]
-                    }
-                });
+                // Collect the coordinates for this path
+                coordinates.push([startNode.properties.longitude, startNode.properties.latitude]);
+                coordinates.push([endNode.properties.longitude, endNode.properties.latitude]);
             }
+
+            geojson.features.push({
+                type: "Feature",
+                properties: {pathId: index},  // Assigning a unique path ID for coloring on the client-side
+                geometry: {
+                    type: "LineString",
+                    coordinates: coordinates
+                }
+            });
         });
 
         console.log("-----------------------geojson--------------------------------\n" + geojson.features[0].geometry.coordinates);
