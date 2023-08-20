@@ -246,6 +246,17 @@ function highlightPath(sourceASN, destinationASN) {
     fetch(endpoint)
         .then(response => response.json())
         .then(data => {
+            // Get all layer IDs
+            const layerIds = map.getStyle().layers.map(layer => layer.id);
+
+            // Identify the ones that match our pattern and remove them
+            layerIds.forEach(layerId => {
+                if (/^highlightedPath-/.test(layerId)) {
+                    map.removeLayer(layerId);
+                    map.removeSource(layerId);
+                }
+            });
+
             if (data.features && Array.isArray(data.features)) {
                 data.features.forEach(feature => {
                     const layerId = `highlightedPath-${feature.properties.pathId}`; // Use pathId to generate unique ID
@@ -270,6 +281,7 @@ function highlightPath(sourceASN, destinationASN) {
                 });
             }
         });
+
 
 }
 
@@ -317,6 +329,14 @@ document.querySelector('.switch input').addEventListener('change', function() {
 // Fetch router data from the server and add each router to the map
 function fetchAndUpdateMap(newMode, zoomLevel = map.getZoom(), hglt = false) {
   mode = newMode;
+  const bounds = map.getBounds();
+  const minLon = bounds.getWest();
+  const maxLon = bounds.getEast();
+  const minLat = bounds.getSouth();
+  const maxLat = bounds.getNorth();
+
+  console.log("--------------------Show the Map Bounds----------------------------");
+  console.log(minLat, maxLat, minLon, maxLon);
 
   if (!hglt) {
     // If hglt is false, remove all existing markers and layers from the map
@@ -335,15 +355,17 @@ function fetchAndUpdateMap(newMode, zoomLevel = map.getZoom(), hglt = false) {
   fetch(`/getRouterData?mode=${mode}&zoomLevel=${zoomLevel}`)
     .then(response => response.json())
     .then(data => {
-      console.log(data);
+      // console.log(data);
       // If hglt is true, use highlightRouterMarker, otherwise use addRouterMarker
       const markerFunction = hglt ? highlightRouterMarker : addRouterMarker;
       data.features.forEach(markerFunction);
     });
 
-  fetch(`/getLinkData?mode=${mode}&zoomLevel=${zoomLevel}`)
+  // Fetch link data from the server and add each link to the map
+  fetch(`/getLinkData?minLat=${minLat}&maxLat=${maxLat}&minLon=${minLon}&maxLon=${maxLon}&mode=${mode}&zoomLevel=${zoomLevel}`)
     .then(response => response.json())
     .then(data => {
+      console.log(data);
       data.features.forEach(addLink);
     });
 }
