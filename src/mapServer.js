@@ -91,7 +91,7 @@ app.get('/getRouterData', async (req, res) => {
         if (zoomLevel >= 5.8 && mode === 'ASN') {
             console.log("Zoom level 5.8 exceeded in ASN mode");
             baseQuery = `
-                MATCH (rc:RouterClone)
+                MATCH (rc:popNetwork)
                 ${filters.replace(/r\./g, "rc.")}
                 WITH rc.longitude AS longitude, rc.latitude AS latitude, rc.asn AS asn, rc.as AS as, COLLECT(rc.ip)[0] AS ip
                 WITH longitude, latitude, COLLECT({asn: asn, as: as, ip: ip}) AS asnIps
@@ -232,7 +232,7 @@ app.get('/getLinkData', async (req, res) => {
 
         if (zoomLevel >= 5.8 && mode === 'ASN') {
             query = `
-                MATCH (rc1:RouterClone)-[:POINTS_TO]->(rc2:RouterClone)
+                MATCH (rc1:popNetwork)-[:CONNECTS_TO]->(rc2:popNetwork)
                 ${baseFilter}
                 RETURN
                     rc1.identity AS id1, rc2.identity AS id2,
@@ -329,6 +329,27 @@ async function getPath(req, res, useRouterClone) {
             type: "FeatureCollection",
             features: []
         };
+
+        const startNode = results.records[0].get('path').start;
+        const endNode = results.records[0].get('path').end;
+
+        geojson.features.push({
+            type: "Feature",
+            properties: {type: 'startNode'},
+            geometry: {
+                type: "Point",
+                coordinates: [startNode.properties.longitude, startNode.properties.latitude]
+            }
+        });
+
+        geojson.features.push({
+            type: "Feature",
+            properties: {type: 'endNode'},
+            geometry: {
+                type: "Point",
+                coordinates: [endNode.properties.longitude, endNode.properties.latitude]
+            }
+        });
 
         results.records.forEach((record, index) => {
             const path = record.get('path');
