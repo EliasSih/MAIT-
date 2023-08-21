@@ -12,6 +12,19 @@ let markers = [];
 let layers = [];
 let mode;
 let routerCoordinates = {};
+let currentlyFocusedInput = null;
+let linkData = [];
+
+
+document.getElementById('sourceInput').addEventListener('focus', function() {
+    currentlyFocusedInput = this;
+    console.log("---------------sourceInput clicked------------\n"+currentlyFocusedInput)
+});
+
+document.getElementById('destinationInput').addEventListener('focus', function() {
+    currentlyFocusedInput = this;
+    console.log("-----------destinationInput clicked-----------\n"+currentlyFocusedInput)
+});
 
 // Function to add a router marker to the map
 function addRouterMarker(router) {
@@ -60,6 +73,7 @@ function addRouterMarker(router) {
     marker.togglePopup();
   });
 
+
   marker.getElement().addEventListener('click', () => {
     var infoDiv = document.querySelector('.info-block');
     var geoASNBlock = document.getElementById('geoASNBlock'); // Get the geoASNBlock div
@@ -89,9 +103,14 @@ function addRouterMarker(router) {
             <hr/>
           `;
           infoDiv.innerHTML += routerHTML;
+          // New code to set IP to input:
+          if (currentlyFocusedInput) {
+              currentlyFocusedInput.value = info.ip;
+          }
         });
     }
   });
+
 }
 
 // Function to highlight a router marker on the map
@@ -201,6 +220,59 @@ function addLink(feature) {
     });
 }
 
+// Function to add all links to the map
+function addLinksToMap(geojsonData) {
+    // ID for the links layer and source
+    const layerId = 'linksLayer';
+    const sourceId = 'linksSource';
+
+    // Check if the layer already exists and remove if it does
+    if (map.getLayer(layerId)) {
+        map.removeLayer(layerId);
+    }
+
+    // Check if the source already exists and remove if it does
+    if (map.getSource(sourceId)) {
+        map.removeSource(sourceId);
+    }
+
+    // Add the new source
+    map.addSource(sourceId, {
+        type: 'geojson',
+        data: geojsonData
+    });
+
+    // Add all lines to map using the new source
+    map.addLayer({
+        id: layerId,
+        type: 'line',
+        source: sourceId,
+        layout: {
+            'line-join': 'round',
+            'line-cap': 'round'
+        },
+        paint: {
+            'line-color': '#000000',
+            'line-width': 1
+        }
+    });
+}
+
+map.on('click', function (e) {
+    // Define a bounding box around the click point for tolerance
+    const bbox = [[e.point.x - 10, e.point.y - 10], [e.point.x + 10, e.point.y + 10]];
+    const features = map.queryRenderedFeatures(bbox, { layers: ['linksLayer'] });
+
+    if (features.length && features[0].geometry.type === "LineString") {
+        const coordinates = features[0].geometry.coordinates;
+        const startCoord = coordinates[0];
+        const endCoord = coordinates[coordinates.length - 1];
+        console.log("Start:", startCoord, "End:", endCoord);
+    }
+});
+
+
+
 // Fetch router data from the server and add each router to the map
 fetch('/getRouterData')
   .then(response => response.json())
@@ -258,31 +330,48 @@ function highlightPath(sourceASN, destinationASN) {
             });
 
             if (data.features && Array.isArray(data.features)) {
-                data.features.forEach(feature => {
-                    const layerId = `highlightedPath-${feature.properties.pathId}`; // Use pathId to generate unique ID
 
-                    // Add each path with a different color
-                    map.addLayer({
-                        id: layerId,
-                        type: 'line',
-                        source: {
-                            type: 'geojson',
-                            data: feature
-                        },
-                        layout: {
-                            'line-join': 'round',
-                            'line-cap': 'round'
-                        },
-                        paint: {
-                            'line-color': getNextColor(),
-                            'line-width': 3
-                        }
-                    });
+                data.features.forEach(feature => {
+                    if (feature.geometry.type === 'LineString') {
+                      const layerId = `highlightedPath-${feature.properties.pathId}`; // Use pathId to generate unique ID
+
+                      // Add each path with a different color
+                      map.addLayer({
+                          id: layerId,
+                          type: 'line',
+                          source: {
+                              type: 'geojson',
+                              data: feature
+                          },
+                          layout: {
+                              'line-join': 'round',
+                              'line-cap': 'round'
+                          },
+                          paint: {
+                              'line-color': getNextColor(),
+                              'line-width': 3
+                          }
+                      });
+                    } else if (feature.geometry.type === 'Point') {
+                        const nodeType = feature.properties.type;
+                        const layerId = `highlightedNode-${nodeType}`;
+
+                        map.addLayer({
+                            id: layerId,
+                            type: 'circle',
+                            source: {
+                                type: 'geojson',
+                                data: feature
+                            },
+                            paint: {
+                                'circle-radius': 20,
+                                'circle-color': nodeType === 'startNode' ? '#00FF00' : '#FF0000'  // Use green for startNode and red for endNode
+                            }
+                        });
+                    }
                 });
             }
         });
-
-
 }
 
   // Listen to zoom events
@@ -361,13 +450,13 @@ function fetchAndUpdateMap(newMode, zoomLevel = map.getZoom(), hglt = false) {
       data.features.forEach(markerFunction);
     });
 
-  // Fetch link data from the server and add each link to the map
-  fetch(`/getLinkData?minLat=${minLat}&maxLat=${maxLat}&minLon=${minLon}&maxLon=${maxLon}&mode=${mode}&zoomLevel=${zoomLevel}`)
-    .then(response => response.json())
-    .then(data => {
-      console.log(data);
-      data.features.forEach(addLink);
-    });
+    // Fetch link data from the server and add links to the map
+    fetch(`/getLinkData?minLat=${minLat}&maxLat=${maxLat}&minLon=${minLon}&maxLon=${maxLon}&mode=${mode}&zoomLevel=${zoomLevel}`)
+        .then(response => response.json())
+        .then(data => {
+          linkData = data.features;
+          addLinksToMap(data);
+        });
 }
 
 map.on('load', () => {

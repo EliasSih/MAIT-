@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Map with Network Graph</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="/src/styles.css">
+  </head>
+  <body>
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-md-9 map-block" id="map" >
+          <!-- The map and network graph will be added here by D3.js -->
+        </div>
+        <div class="col-md-3 info-block" >
+          <!-- Add your other content here -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Include the D3.js library -->
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+    <!-- Include the D3.js Zoom library -->
+    <script src="https://d3js.org/d3-zoom.v1.min.js"></script>
+    <!-- Include the TopoJSON client library to convert TopoJSON to GeoJSON for D3 -->
+    <script src="https://unpkg.com/topojson-client@3"></script>
+    <!-- Include the main JavaScript file -->
+    <script src="/src/mapVisualization.js"></script>
+    <!-- Bootstrap -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
+  </body>
+</html>
