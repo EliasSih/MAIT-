@@ -20,23 +20,24 @@ function getPointInCircle(jitter) {
 
 async function jitterLocations() {
     try {
+        // Updated the node type to popNetwork from RouterClone
         let resultNodes = await session.run(
-            `MATCH (rc:RouterClone)
-             RETURN rc AS router`
+            `MATCH (pn:popNetwork) WHERE NOT (pn.latitude = 0 AND pn.longitude = 0)
+             RETURN pn AS popNet`
         );
 
         let nodesGroupedByLocation = {};
 
         // Group nodes by location
         for (let record of resultNodes.records) {
-            let router = record.get('router');
-            let locationKey = `${router.properties.latitude.toFixed(5)},${router.properties.longitude.toFixed(5)}`;
+            let popNet = record.get('popNet');
+            let locationKey = `${popNet.properties.latitude.toFixed(5)},${popNet.properties.longitude.toFixed(5)}`;
 
             if (!nodesGroupedByLocation[locationKey]) {
                 nodesGroupedByLocation[locationKey] = [];
             }
 
-            nodesGroupedByLocation[locationKey].push(router);
+            nodesGroupedByLocation[locationKey].push(popNet);
         }
 
         // Process each location
@@ -52,8 +53,8 @@ async function jitterLocations() {
 
                     // Update the node's latitude and longitude
                     await session.run(
-                        `MATCH (rc:RouterClone {ip: $ip})
-                         SET rc.latitude = $newLatitude, rc.longitude = $newLongitude`,
+                        `MATCH (pn:popNetwork {ip: $ip})
+                         SET pn.latitude = $newLatitude, pn.longitude = $newLongitude`,
                         {
                             ip: nodes[i].properties.ip,
                             newLatitude: newLatitude,
@@ -64,7 +65,7 @@ async function jitterLocations() {
             }
         }
 
-        console.log(`${resultNodes.records.length} RouterClone nodes processed.`);
+        console.log(`${resultNodes.records.length} popNetwork nodes processed.`);
     } catch (err) {
         console.error(err);
     } finally {
@@ -74,6 +75,3 @@ async function jitterLocations() {
 }
 
 jitterLocations();
-
-// TODO
-// add condittion to not jitter nodes with latitude: 0 && longitude: 0
