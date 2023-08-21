@@ -91,7 +91,7 @@ app.get('/getRouterData', async (req, res) => {
         if (zoomLevel >= 5.8 && mode === 'ASN') {
             console.log("Zoom level 5.8 exceeded in ASN mode");
             baseQuery = `
-                MATCH (rc:RouterClone)
+                MATCH (rc:popNetwork)
                 ${filters.replace(/r\./g, "rc.")}
                 WITH rc.longitude AS longitude, rc.latitude AS latitude, rc.asn AS asn, rc.as AS as, COLLECT(rc.ip)[0] AS ip
                 WITH longitude, latitude, COLLECT({asn: asn, as: as, ip: ip}) AS asnIps
@@ -100,7 +100,7 @@ app.get('/getRouterData', async (req, res) => {
         } else if (mode === 'ASN') {
             console.log("elif in getRouterData");
             baseQuery = `
-                MATCH (r:Router)
+                MATCH (r:RouterClone)
                 ${filters}
                 WITH r.longitude AS longitude, r.latitude AS latitude, r.asn AS asn, r.as AS as, COLLECT(r.ip)[0] AS ip
                 WITH longitude, latitude, COLLECT({asn: asn, as: as, ip: ip}) AS asnIps
@@ -109,7 +109,7 @@ app.get('/getRouterData', async (req, res) => {
         } else {
             console.log("else in getRouterData");
             baseQuery = `
-                MATCH (r:Router)
+                MATCH (r:RouterClone)
                 ${filters}
                 WITH r.longitude AS longitude, r.latitude AS latitude, COLLECT(r) AS routers
                 RETURN longitude, latitude, [router IN routers | router.ip] AS ips
@@ -149,7 +149,7 @@ app.get('/getASNData', async (req, res) => {
 
     try {
         let query = `
-            MATCH (r:Router)
+            MATCH (r:RouterClone)
             WITH r.longitude AS longitude, r.latitude AS latitude, COLLECT(DISTINCT r.asn) AS asns
             RETURN longitude, latitude, asns
         `;
@@ -186,7 +186,7 @@ app.get('/getRouterDetails', async (req, res) => {
 
     try {
         let query = `
-            MATCH (r:Router {ip: $ip})
+            MATCH (r:RouterClone {ip: $ip})
             WITH r AS routerData, COLLECT(DISTINCT r.asn) AS uniqueASNs
             RETURN routerData {.*, asn: uniqueASNs} AS r
         `;
@@ -212,24 +212,45 @@ app.get('/getLinkData', async (req, res) => {
     const session = driver.session({ database: databaseName });
     const mode = req.query.mode;
     const zoomLevel = req.query.zoomLevel;
+    const minLat = parseFloat(req.query.minLat);
+    const maxLat = parseFloat(req.query.maxLat);
+    const minLon = parseFloat(req.query.minLon);
+    const maxLon = parseFloat(req.query.maxLon);
 
       try {
         let query;
 
+        const baseFilter = `
+            WHERE
+                (rc1.latitude >= ${minLat} AND rc1.latitude <= ${maxLat} AND rc1.longitude >= ${minLon} AND rc1.longitude <= ${maxLon})
+            AND
+                (rc2.latitude >= ${minLat} AND rc2.latitude <= ${maxLat} AND rc2.longitude >= ${minLon} AND rc2.longitude <= ${maxLon})
+            AND NOT
+                (rc1.latitude = rc2.latitude AND rc1.longitude = rc2.longitude)  // Ensure they are not the same point
+            AND id(rc1) < id(rc2) // This ensures uniqueness
+        `;
+
         if (zoomLevel >= 5.8 && mode === 'ASN') {
             query = `
-                MATCH (rc1:RouterClone)-[:POINTS_TO]->(rc2:RouterClone)
-                RETURN rc1.identity AS id1, rc2.identity AS id2, rc1.longitude AS longitude1, rc1.latitude AS latitude1, rc2.longitude AS longitude2, rc2.latitude AS latitude2
+                MATCH (rc1:popNetwork)-[:CONNECTS_TO]->(rc2:popNetwork)
+                ${baseFilter}
+                RETURN
+                    rc1.identity AS id1, rc2.identity AS id2,
+                    rc1.longitude AS longitude1, rc1.latitude AS latitude1,
+                    rc2.longitude AS longitude2, rc2.latitude AS latitude2
                 ORDER BY id1, id2
             `;
         } else {
-            query = `
-              MATCH (r1:Router)-[:LINKS_TO]->(r2:Router)
-              RETURN r1.identity AS id1, r2.identity AS id2, r1.longitude AS longitude1, r1.latitude AS latitude1, r2.longitude AS longitude2, r2.latitude AS latitude2
-              ORDER BY id1, id2
-            `;}
+          query = `
+            MATCH (r1:Router)-[:LINKS_TO]->(r2:Router)
+            RETURN r1.identity AS id1, r2.identity AS id2, r1.longitude AS longitude1, r1.latitude AS latitude1, r2.longitude AS longitude2, r2.latitude AS latitude2
+            ORDER BY id1, id2
+          `;}
 
         let results = await session.run(query);
+
+        console.log('-------------------Query---------------------------\n'+ query);
+        console.log("Zoomlevel: "+zoomLevel + " Mode: "+mode);
 
         let geojson = {
             type: "FeatureCollection",
@@ -288,13 +309,15 @@ async function getPath(req, res, useRouterClone) {
 
         if (useRouterClone) {
             query = `
-                MATCH path = (src:RouterClone {asn: $srcAsnNumber})-[:POINTS_TO*]-(dest:RouterClone {asn: $destAsnNumber})
-                RETURN path
+              MATCH path = (rc1:RouterClone {ip: "5.11.12.103"})-[:POINTS_TO*..10]-(rc2:RouterClone {ip: "155.232.152.136"})
+              RETURN path
+              LIMIT 1;
             `;
         } else {
             query = `
-                MATCH path = (src:Router {asn: $srcAsnNumber})-[:LINKS_TO*]-(dest:Router {asn: $destAsnNumber})
-                RETURN path
+              MATCH path = (rc1:RouterClone {ip: "5.11.12.103"})-[:POINTS_TO*..10]-(rc2:RouterClone {ip: "155.232.152.136"})
+              RETURN path
+              LIMIT 1;
             `;
         }
 
@@ -306,6 +329,27 @@ async function getPath(req, res, useRouterClone) {
             type: "FeatureCollection",
             features: []
         };
+
+        const startNode = results.records[0].get('path').start;
+        const endNode = results.records[0].get('path').end;
+
+        geojson.features.push({
+            type: "Feature",
+            properties: {type: 'startNode'},
+            geometry: {
+                type: "Point",
+                coordinates: [startNode.properties.longitude, startNode.properties.latitude]
+            }
+        });
+
+        geojson.features.push({
+            type: "Feature",
+            properties: {type: 'endNode'},
+            geometry: {
+                type: "Point",
+                coordinates: [endNode.properties.longitude, endNode.properties.latitude]
+            }
+        });
 
         results.records.forEach((record, index) => {
             const path = record.get('path');
